@@ -17,6 +17,114 @@ vrt="""<OGRVRTDataSource>
 </OGRVRTDataSource>"""
 
 
+fields = ['URN',
+        'LA (code)',
+        'LA (name)',
+        'EstablishmentNumber',
+        'EstablishmentName',
+        'TypeOfEstablishment (name)',
+        'EstablishmentStatus (name)',
+        'ReasonEstablishmentOpened (name)',
+        'OpenDate',
+        'ReasonEstablishmentClosed (name)',
+        'CloseDate',
+        'PhaseOfEducation (name)',
+        'StatutoryLowAge',
+        'StatutoryHighAge',
+        'Boarders (name)',
+        'OfficialSixthForm (name)',
+        'Gender (name)',
+        'ReligiousCharacter (name)',
+        'Diocese (name)',
+        'AdmissionsPolicy (name)',
+        'SchoolCapacity',
+        'SpecialClasses (name)',
+        'CensusDate',
+        'NumberOfPupils',
+        'NumberOfBoys',
+        'NumberOfGirls',
+        'PercentageFSM',
+        'TrustSchoolFlag (name)',
+        'Trusts (name)',
+        'SchoolSponsorFlag (name)',
+        'SchoolSponsors (name)',
+        'FederationFlag (name)',
+        'Federations (name)',
+        'UKPRN',
+        'FEHEIdentifier',
+        'FurtherEducationType (name)',
+        'OfstedLastInsp',
+        'OfstedSpecialMeasures (name)',
+        'LastChangedDate',
+        'Street',
+        'Locality',
+        'Address3',
+        'Town',
+        'County (name)',
+        'Postcode',
+        'SchoolWebsite',
+        'TelephoneNum',
+        'HeadTitle (name)',
+        'HeadFirstName',
+        'HeadLastName',
+        'HeadHonours',
+        'HeadPreferredJobTitle',
+        'TeenMoth (name)',
+        'TeenMothPlaces',
+        'CCF (name)',
+        'SENPRU (name)',
+        'EBD (name)',
+        'FTProv (name)',
+        'EdByOther (name)',
+        'Section41Approved (name)',
+        'SEN1 (name)',
+        'SEN2 (name)',
+        'SEN3 (name)',
+        'GOR (name)',
+        'AdministrativeWard (name)',
+        'ParliamentaryConstituency (name)',
+        'UrbanRural (name)',
+        'GSSLACode (name)',
+        'Easting',
+        'Northing',
+        'MSOA (name)',
+        'LSOA (name)',
+        'BoardingEstablishment (name)',
+        'PreviousLA (code)',
+        'PreviousLA (name)',
+        'PreviousEstablishmentNumber']
+
+seed_fields = ['SeedCode',
+                'LA Name',
+                'Centre Type',
+                'School Name',
+                'Address 1',
+                'Address 2',
+                'Address 3',
+                'Post code',
+                'E-mail',
+                'Phone',
+                'Primary_school',
+                'Secondary',
+                'Special',
+                'Primary roll',
+                'Secondary roll',
+                'Special roll',
+                'Primary1',
+                'Secondary1',
+                'Special1',
+                'Denomination']
+
+def clean_header(header):
+    for h in header:
+        h = h.replace(" ", "")
+        h = h.replace("(", "_")
+        h = h.replace(")", "")
+        h = h.replace("-", "")
+        yield h
+
+
+
 def unzip_codepo():
     with fab.lcd(os.path.join(PROJECT_DIR, 'data')):
         fab.local('unzip codepo_gb.zip')
@@ -62,6 +170,7 @@ def create_db():
 
 
 def ogr2ogr_import_codepoint():
+    #XXX this fails for some reason
     first = '''ogr2ogr -nlt PROMOTE_TO_MULTI -progress -nln codepoint -skipfailures -lco PRECISION=no -f PostgreSQL PG:"dbname='osopen_data' host='localhost' port='5432'  user='osopen' password='osopen' " {0}'''
     other = '''ogr2ogr -nlt PROMOTE_TO_MULTI -progress -update -append -nln codepoint -skipfailures -lco PRECISION=no -f PostgreSQL PG:"dbname='osopen_data' host='localhost'  port='5432' user='osopen' password='osopen'" {0}'''
     path = os.path.join(PROJECT_DIR, 'data', 'Data', 'processed_csv')
@@ -71,32 +180,7 @@ def ogr2ogr_import_codepoint():
             fab.local(template.format(f))
         template = other
 
-def sql_import():
-    """
-DROP TABLE IF EXISTS postcodes_raw;
-
-CREATE TABLE postcodes_raw (
-  postcode character varying(10),
-  easting character varying(7),
-  northing character varying(7)
-);
-
-\copy postcodes_raw from pstdin delimiter ',' csv;
-
-DROP TABLE IF EXISTS postcodes;
-
-SELECT
-  postcode,
-  ST_TRANSFORM(ST_GEOMFROMEWKT('SRID=27700;POINT(' || easting || ' ' || northing || ')'), 4326)::GEOGRAPHY(Point, 4326) AS location
-INTO
-  postcodes
-FROM
-  postcodes_raw;
-
-CREATE INDEX postcodes_geog_idx ON postcodes USING GIST(location);
-
-DROP TABLE postcodes_raw;
-    """
+def postcode_sql_import():
     fab.local('psql -d osopen_data -U osopen -c "DROP TABLE IF EXISTS postcodes_raw;"')
     fab.local('''psql -d osopen_data -U osopen -c "CREATE TABLE postcodes_raw (
             Postcode character varying(10),
@@ -119,5 +203,74 @@ DROP TABLE postcodes_raw;
         ST_TRANSFORM(ST_GEOMFROMEWKT('SRID=27700;POINT(' || eastings || ' ' || northings || ')'), 4326)::GEOGRAPHY(Point, 4326) AS location
         INTO postcodes FROM postcodes_raw;"''')
     fab.local('psql -d osopen_data -U osopen -c "CREATE INDEX postcodes_geog_idx ON postcodes USING GIST(location);"')
-    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE postcodes_raw;"')
+    fab.local('psql -d osopen_data -U osopen -c "ALTER TABLE postcodes ADD PRIMARY KEY (Postcode);"')
+    #fab.local('psql -d osopen_data -U osopen -c "DROP TABLE postcodes_raw;"')
+
+
+
+
+def edubase_import():
+    header = list(clean_header(fields))
+    inpath = os.path.join(PROJECT_DIR, 'data')
+    for f in glob.glob(os.path.join(inpath,'edubasealldata*.csv')):
+         with open(os.path.join(inpath, 'processed_csv_' + os.path.split(f)[1]), 'w') as outfile:
+            with open(f, 'r') as infile:
+                writer = csv.writer(outfile)
+                writer.writerow(header)
+                reader = csv.reader(infile)
+                reader.next()
+                for row in reader:
+                    writer.writerow(row)
+
+def edubase_sql_import():
+    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE IF EXISTS edubase_raw;"')
+    cols = ['{0} character varying(500)'.format(f) for f in (clean_header(fields))]
+    fab.local('''psql -d osopen_data -U osopen -c "CREATE TABLE edubase_raw (
+              {0});"'''.format(', '.join(cols)))
+    path = os.path.join(PROJECT_DIR, 'data')
+    for f in glob.glob(os.path.join(path,'processed_csv_edubasealldata*.csv')):
+        fab.local('''psql -d osopen_data -U osopen -c "\copy edubase_raw from
+                  {0}
+                  WITH (FORMAT CSV, HEADER, ENCODING 'LATIN1', DELIMITER ',');"'''.format(f))
+    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE IF EXISTS edubase;"')
+    fab.local('''psql -d osopen_data -U osopen -c "SELECT
+        edubase_raw.*,
+        ST_TRANSFORM(ST_GEOMFROMEWKT('SRID=27700;POINT(' || easting || ' ' || northing || ')'), 4326)::GEOGRAPHY(Point, 4326) AS location
+        INTO edubase FROM edubase_raw;"''')
+    fab.local('psql -d osopen_data -U osopen -c "CREATE INDEX edubase_location_geog_idx ON edubase USING GIST(location);"')
+    fab.local('psql -d osopen_data -U osopen -c "ALTER TABLE edubase ADD PRIMARY KEY (urn);"')
+
+
+def seed_import():
+    header = list(clean_header(seed_fields))
+    inpath = os.path.join(PROJECT_DIR, 'data')
+    for f in glob.glob(os.path.join(inpath,'seeddata*.csv')):
+         with open(os.path.join(inpath, 'processed_csv_' + os.path.split(f)[1]), 'w') as outfile:
+            with open(f, 'r') as infile:
+                writer = csv.writer(outfile)
+                writer.writerow(header)
+                reader = csv.reader(infile)
+                reader.next()
+                for row in reader:
+                    writer.writerow(row)
+
+def seed_sql_import():
+    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE IF EXISTS seed_raw;"')
+    cols = ['{0} character varying(200)'.format(f) for f in (clean_header(seed_fields))]
+    fab.local('''psql -d osopen_data -U osopen -c "CREATE TABLE seed_raw (
+              {0});"'''.format(', '.join(cols)))
+    path = os.path.join(PROJECT_DIR, 'data')
+    for f in glob.glob(os.path.join(path,'processed_csv_seeddata*.csv')):
+        fab.local('''psql -d osopen_data -U osopen -c "\copy seed_raw from
+                  {0}
+                  WITH (FORMAT CSV, HEADER, DELIMITER ',');"'''.format(f))
+    fab.local('''psql -d osopen_data -U osopen -c " SELECT seed_raw.*, postcodes.location as location
+                FROM postcodes INNER JOIN seed_raw
+                ON replace(postcodes.postcode, ' ', '')=replace(seed_raw.postcode, ' ','')
+                INTO seed_data;"''')
+    fab.local('psql -d osopen_data -U osopen -c "CREATE INDEX seed_location_geog_idx ON seed_data USING GIST(location);"')
+    fab.local('psql -d osopen_data -U osopen -c "ALTER TABLE seed_data ADD PRIMARY KEY (seedcode);"')
+
+
+
 
