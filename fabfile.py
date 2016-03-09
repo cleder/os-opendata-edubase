@@ -3,7 +3,7 @@ import csv
 import fnmatch
 import glob
 import os
-import pipes
+
 
 from fabric import api as fab
 
@@ -152,7 +152,6 @@ def import_shp():
     template = first
     for root, dirnames, filenames in os.walk(inpath):
         for filename in fnmatch.filter(filenames, '*_FunctionalSite.shp'):
-            #print pipes.quote(root), filename
             with fab.lcd(root):
                 print os.path.join(root, filename)
                 fab.local(template.format(filename))
@@ -302,7 +301,7 @@ def seed_sql_import():
                 ON replace(postcodes.postcode, ' ', '')=replace(seed_raw.postcode, ' ','')
                 INTO seed_data;"''')
     fab.local('psql -d osopen_data -U osopen -c "CREATE INDEX seed_location_geog_idx ON seed_data USING GIST(location);"')
-    fab.local('psql -d osopen_data -U osopen -c "ALTER TABLE seed_data ADD PRIMARY KEY (seedcode);"')
+    fab.local('psql -d osopen_data -U osopen -c "ALTER TABLE seed_data ADD COLUMN id SERIAL PRIMARY KEY;"')
 
 
 
