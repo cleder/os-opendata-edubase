@@ -2,6 +2,7 @@
 from operator import itemgetter
 
 import Levenshtein
+from django.db import connection
 
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
@@ -15,7 +16,6 @@ from .models import EdubaseSite, SeedSite
 
 def index(request):
     response = "Home."
-<<<<<<< HEAD
     cursor = connection.cursor()
     cursor.execute('SELECT site_id FROM schools_edubasesite UNION SELECT site_id FROM schools_seedsite;')
     sites_to_exclude=[row[0] for row in cursor.fetchall()]
@@ -30,22 +30,20 @@ def index(request):
     i = 0
     successfuls = 0
     failures = 0
-    for school in edu_schools.all():
     num_sites=sites.count()
-    i = j = k = 0
     print 'sites found', num_sites
     for site in sites.all():
         i+=1
-        print "{0} of {1} schools scanned {2} success {3} failure".format(i, num_schools, successfuls, failures)
-        point = school.location
+        print "{0} of {1} sites scanned {2} success {3} failure".format(i, num_sites, successfuls, failures)
+        poly = site.geom
         school_sites = []
-        if not point:
-            continue
-        for site in sites.filter(geom__distance_lte=(point, Distance(m=150))).annotate(distance=TheDistance('geom', point)).order_by('distance').all():
+        for school in edu_schools.filter(location__distance_lte=(poly, Distance(m=150))).annotate(distance=TheDistance('location', poly)).order_by('distance').all():
             if school.establishmentname != site.distname:
+                print school.establishmentname, site.distname
                 if school.establishmentname and  site.distname:
                     school_sites.append([Levenshtein.ratio(school.establishmentname, site.distname), school, site])
             else:
+                print 'success'
                 EdubaseSite.objects.create(school=school, site=site)
                 successfuls+=1
                 break
@@ -58,21 +56,14 @@ def index(request):
                 else:
                     failures+=1
                     print 'failed for', site.distname
-            else:
-                failures+=1
-    for school in seed_schools.all():
-        i+=1
-        print "{0} of {1} schools scanned {2} success {3} failure".format(i, num_schools, successfuls, failures)
-        point = school.location
         school_sites = []
-        if not point:
-            continue
-        for site in sites.filter(geom__distance_lte=(point, Distance(m=150))).annotate(distance=TheDistance('geom', point)).order_by('distance').all():
+        for school in seed_schools.filter(location__distance_lte=(poly, Distance(m=150))).annotate(distance=TheDistance('location', poly)).order_by('distance').all():
             if school.schoolname != site.distname:
                 if school.schoolname and  site.distname:
-                    print Levenshtein.ratio(school.schoolname, site.distname)
+                    school_sites.append([Levenshtein.ratio(school.schoolname, site.distname), school, site])
             else:
-                SeedSite.objects.create(school=school, site=site)
+                print 'success'
+                SeedSite.objects.create(school=a[0][1], site=a[0][2])
                 successfuls+=1
                 break
         else:
@@ -84,6 +75,4 @@ def index(request):
                 else:
                     failures+=1
                     print 'failed for', site.distname
-            else:
-                failures+=1
     return HttpResponse(response)
