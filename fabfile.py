@@ -1,7 +1,10 @@
 #
 import csv
+import fnmatch
 import glob
 import os
+import pipes
+
 from fabric import api as fab
 
 
@@ -128,6 +131,36 @@ def clean_header(header):
 def unzip_codepo():
     with fab.lcd(os.path.join(PROJECT_DIR, 'data')):
         fab.local('unzip codepo_gb.zip')
+
+def unzip_os_local():
+    inpath = os.path.join(PROJECT_DIR, 'data')
+    with fab.lcd(inpath):
+        for f in glob.glob(os.path.join(inpath,'opmplc_essh_*.zip')):
+            print f
+            fab.local('unzip {0}'.format(f))
+
+def import_shp():
+
+    inpath = os.path.join(PROJECT_DIR, 'data')
+    # shp2pgsql does not like the directorynames so we rename them
+    for d in glob.glob(os.path.join(inpath, 'OSOpenMapLocal (ESRI Shape File) *')):
+        src, dest = d,os.path.join(inpath,d[-2:])
+        print src, dest
+        os.rename(src, dest)
+    first = '''shp2pgsql -d -s 27700:4326 -I -W LATIN1 {0} functional_site | psql -d osopen_data -U osopen'''
+    other = '''shp2pgsql -a -s 27700:4326 -W LATIN1 {0} functional_site | psql -d osopen_data -U osopen'''
+    template = first
+    for root, dirnames, filenames in os.walk(inpath):
+        for filename in fnmatch.filter(filenames, '*_FunctionalSite.shp'):
+            #print pipes.quote(root), filename
+            with fab.lcd(root):
+                print os.path.join(root, filename)
+                fab.local(template.format(filename))
+            template = other
+
+
+
+
 
 def prepend_headers():
     inpath = os.path.join(PROJECT_DIR, 'data', 'Data', 'CSV')
