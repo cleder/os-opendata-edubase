@@ -3,6 +3,7 @@ from operator import itemgetter
 
 import Levenshtein
 
+from django.db import connection
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
 from django.shortcuts import render
@@ -15,9 +16,16 @@ from .models import EdubaseSite, SeedSite
 
 def index(request):
     response = "Home."
-    sites = FunctionalSite.objects.filter(sitetheme = 'Education')
-    edu_schools = Edubase.objects.filter(establishmentstatus_name = 'Open')
-    seed_schools = SeedData.objects
+    cursor = connection.cursor()
+    cursor.execute('SELECT site_id FROM schools_edubasesite UNION SELECT site_id FROM schools_seedsite;')
+    sites_to_exclude=[row[0] for row in cursor.fetchall()]
+    sites = FunctionalSite.objects.filter(sitetheme = 'Education').exclude(gid__in=sites_to_exclude)
+    cursor.execute('SELECT school_id FROM schools_edubasesite;')
+    edu_schools_to_exclude=[row[0] for row in cursor.fetchall()]
+    edu_schools = Edubase.objects.filter(establishmentstatus_name = 'Open').exclude(urn__in=edu_schools_to_exclude)
+    cursor.execute('SELECT school_id FROM schools_seedsite;')
+    seed_schools_to_exclude=[row[0] for row in cursor.fetchall()]
+    seed_schools = SeedData.objects.exclude(id__in=seed_schools_to_exclude)
     num_sites=sites.count()
     i = j = k = 0
     print 'sites found', num_sites
@@ -51,7 +59,7 @@ def index(request):
             if school.schoolname != site.distname:
                 print school.schoolname, site.distname
                 if school.schoolname and  site.distname:
-                    print Levenshtein.ratio(school.schoolname, site.distname)
+                    school_sites.append([Levenshtein.ratio(school.schoolname, site.distname), school, site])
             else:
                 print 'success'
                 SeedSite.objects.create(school=a[0][1], site=a[0][2])
