@@ -19,5 +19,6 @@ from django.contrib.gis import admin
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^$', include('schools.urls')),
+    url(r'', include('social.apps.django_app.urls', namespace='social')),
+    url(r'^', include('schools.urls')),
 ]

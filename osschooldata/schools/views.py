@@ -12,9 +12,13 @@ from django.http import HttpResponse
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
 from .models import EdubaseSite, SeedSite
 
-#filter(location__distance_lte=(poly, Distance(m=150))).distance(poly).annotate(distance=Distance('location', poly)).order_by('distance').all()
 
 def index(request):
+    return HttpResponse('Hello World')
+
+#filter(location__distance_lte=(poly, Distance(m=150))).distance(poly).annotate(distance=Distance('location', poly)).order_by('distance').all()
+
+def compute(request):
     response = "Home."
     cursor = connection.cursor()
     cursor.execute('SELECT site_id FROM schools_edubasesite UNION SELECT site_id FROM schools_seedsite;')

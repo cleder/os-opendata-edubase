@@ -8,6 +8,9 @@ The Data is derived from:
 'All EduBase data.csv' from edubase_
 'School Contact Details' from the  Scottish Government seed_
 
+Start django application with `python manage.py runserver 0.0.0.0:8017`
+
+
 .. _ordnancesurvey: https://www.ordnancesurvey.co.uk/opendatadownload/products.html
 .. _edubase: http://www.education.gov.uk/edubase/home.xhtml
 .. _seed: http://www.gov.scot/Topics/Statistics/Browse/School-Education/Datasets/contactdetails
