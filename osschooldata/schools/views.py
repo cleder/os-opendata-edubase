@@ -6,6 +6,8 @@ from django.db import connection
 
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
+from django.contrib.auth import logout as auth_logout
+from django.shortcuts import redirect
 from django.shortcuts import render
 from django.http import HttpResponse
 
@@ -14,7 +16,13 @@ from .models import EdubaseSite, SeedSite
 
 
 def index(request):
-    return HttpResponse('Hello World')
+     return render(request, 'home.html')
+
+def logout(request):
+    """Logs out user"""
+    auth_logout(request)
+    return redirect('/')
+
 
 #filter(location__distance_lte=(poly, Distance(m=150))).distance(poly).annotate(distance=Distance('location', poly)).order_by('distance').all()
 
