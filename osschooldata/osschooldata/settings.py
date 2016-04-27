@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.gis',
     'social.apps.django_app.default',
+    'leaflet',
     'schools',
 ]
 
@@ -85,6 +86,12 @@ DATABASES = {
          'NAME': 'osopen_data',
          'USER': 'osopen',
     },
+}
+
+###########################################################################
+# leaflet
+LEAFLET_CONFIG = {
+    'TILES': 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 }
 
 ############################################################################
