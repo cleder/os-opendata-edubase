@@ -304,5 +304,77 @@ def seed_sql_import():
     fab.local('psql -d osopen_data -U osopen -c "ALTER TABLE seed_data ADD COLUMN id SERIAL PRIMARY KEY;"')
 
 
+def combine_edubase_seed():
 
+    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE IF EXISTS schools;"')
+    create_sql = """
+    CREATE TABLE schools
+    (
+      source character varying(8),
+      uid integer,
+      local_authority character varying(255),
+      schoolname character varying(255),
+      postcode character varying(8),
+      street character varying(255),
+      locality character varying(255),
+      town character varying(255),
+      phone character varying(32),
+      phaseofeducation character varying(32),
+      website character varying(255),
+      location geometry(Point,4326),
+      id serial NOT NULL,
+      CONSTRAINT school_id_pk PRIMARY KEY (id)
+    );
+
+    ALTER TABLE schools
+      OWNER TO osopen;
+
+    CREATE INDEX schools_geog_idx
+      ON schools
+      USING gist
+      (location);
+    """
+
+    fab.local('psql -d osopen_data -U osopen -c "{0}"'.format(create_sql))
+
+
+    combine_schools_sql = """
+    INSERT INTO schools (source, uid, local_authority,
+        schoolname, postcode, street, locality, town,
+        phone, phaseofeducation, website, location)
+    SELECT
+      'SEED' as source,
+      seed_data.seedcode::integer as uid,
+      seed_data.laname as local_authority,
+      seed_data.schoolname,
+      trim(seed_data.postcode),
+      seed_data.address1 as street,
+      seed_data.address2 as locality,
+      replace(seed_data.address3, ' - ', '') as town,
+      seed_data.phone,
+      replace(replace(seed_data.primary_school, ' ', ''), '-','') ||
+      replace(replace(seed_data.secondary, ' ', ''), '-','')
+      as phaseofeducation,
+      '' as website,
+      seed_data.location::geometry
+    FROM
+      public.seed_data
+    union
+    SELECT
+      'EDUBASE' as source,
+      edubase.urn::integer,
+      edubase.la_name,
+      edubase.establishmentname,
+      trim(edubase.postcode),
+      edubase.street,
+      edubase.locality,
+      edubase.town,
+      edubase.telephonenum,
+      edubase.phaseofeducation_name,
+      edubase.schoolwebsite,
+      edubase.location::geometry
+    FROM
+      public.edubase
+    """
+    fab.local('psql -d osopen_data -U osopen -c "{0}"'.format(combine_schools_sql))
 
