@@ -1,4 +1,6 @@
 #
+from collections import Counter
+import json
 from operator import itemgetter
 
 import Levenshtein
@@ -16,11 +18,28 @@ from django.views.generic import View
 from djgeojson.views import GeoJSONResponseMixin
 
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
-from .models import EdubaseSite, SeedSite
+from .models import School, SchoolSite
+from .utils import tokenize
 
 
+open_schools = School.objects.filter(status_name__startswith = 'Open')
+school_sites = FunctionalSite.objects.filter(sitetheme = 'Education')
+
+
+def assign_school_to_site(school,site):
+    print school.schoolname
+    SchoolSite.objects.create(school=school, site=site)
+
+def get_schools_nearby(geom):
+    return (open_schools.filter(location__distance_lte=(geom, Distance(m=250)))
+                                    .annotate(distance=TheDistance('location', geom))
+                                    .order_by('distance'))
+
+
+# simple views
 def index(request):
      return render(request, 'home.html')
+
 
 def logout(request):
     """Logs out user"""
@@ -28,109 +47,70 @@ def logout(request):
     return redirect('/')
 
 
+def stopwords(request):
+    count = Counter()
+    for school in School.objects.all():
+        count.update(set(tokenize(school.schoolname)))
+        print school.cleaned_name
+        print school.types_from_name
+    for site in school_sites.all():
+        count.update(set(tokenize(site.distname)))
+        print site.cleaned_name
+        print site.types_from_name
+    response = json.dumps(count.most_common(1000))
+    return HttpResponse(response)
+
+
+def auto_assign(request):
+    exclude_sites = SchoolSite.objects.values_list('site_id', flat=True)
+    exclude_schools = SchoolSite.objects.values_list('school_id', flat=True)
+    for site in school_sites.exclude(gid__in=exclude_sites).all():
+        schools = get_schools_nearby(site.geom).exclude(id__in=exclude_schools).all()
+        for school in schools:
+            if school.schoolname == site.distname:
+                assign_school_to_site(school,site)
+                continue
+            if school.cleaned_name == site.cleaned_name:
+                assign_school_to_site(school,site)
+                continue
+            if school.cleaned_name_no_type == site.cleaned_name_no_type and len(schools)==1:
+                assign_school_to_site(school,site)
+                continue
+            print 'FAIL'
+
+
+#class based views
 class AssignPolyToSchool(TemplateView):
     template_name = "assign.html"
 
     def get(self, request, gid):
-        site = FunctionalSite.objects.filter(sitetheme = 'Education').get(gid=gid)
-        next_site = FunctionalSite.objects.filter(sitetheme = 'Education', gid__gt=gid).first()
-        prev_site = FunctionalSite.objects.filter(sitetheme = 'Education', gid__lt=gid).last()
+        site = school_sites.get(gid=gid)
+        next_site = school_sites.filter(gid__gt=gid).first()
+        prev_site = school_sites.filter(gid__lt=gid).last()
         context = {'site': site, 'next_site': next_site, 'prev_site': prev_site}
         return self.render_to_response(context)
+
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 
     def get_queryset(self):
-        return FunctionalSite.objects.filter(sitetheme = 'Education', gid=self.gid)
+        return school_sites.filter(gid=self.gid)
 
     def get(self, request, gid):
         self.gid = gid
         return self.render_to_response(None)
+
 
 class SchoolNameGeoJsonView(GeoJSONResponseMixin, View):
 
     geometry_field = 'location'
-    properties = ['establishmentname']
+    properties = ['schoolname']
 
     def get_queryset(self):
-        site = FunctionalSite.objects.filter(sitetheme = 'Education').get(gid=self.gid)
-        poly = site.geom
-        edu_schools = Edubase.objects.filter(establishmentstatus_name = 'Open')
-        return (edu_schools.filter(location__distance_lte=(poly, Distance(m=150)))
-                                         .annotate(distance=TheDistance('location', poly))
-                                         .order_by('distance'))
+        site = school_sites.get(gid=self.gid)
+        return get_schools_nearby(site.geom)
+
 
     def get(self, request, gid):
         self.gid = gid
         return self.render_to_response(None)
-
-
-
-#filter(location__distance_lte=(poly, Distance(m=150))).distance(poly).annotate(distance=Distance('location', poly)).order_by('distance').all()
-
-def compute(request):
-    response = "Home."
-    cursor = connection.cursor()
-    cursor.execute('SELECT site_id FROM schools_edubasesite UNION SELECT site_id FROM schools_seedsite;')
-    sites_to_exclude=[row[0] for row in cursor.fetchall()]
-    sites = FunctionalSite.objects.filter(sitetheme = 'Education').exclude(gid__in=sites_to_exclude)
-    cursor.execute('SELECT school_id FROM schools_edubasesite;')
-    edu_schools_to_exclude=[row[0] for row in cursor.fetchall()]
-    edu_schools = Edubase.objects.filter(establishmentstatus_name = 'Open').exclude(urn__in=edu_schools_to_exclude)
-    cursor.execute('SELECT school_id FROM schools_seedsite;')
-    seed_schools_to_exclude=[row[0] for row in cursor.fetchall()]
-    seed_schools = SeedData.objects.exclude(id__in=seed_schools_to_exclude)
-    num_schools=seed_schools.count() + edu_schools.count()
-    i = 0
-    successfuls = 0
-    failures = 0
-    num_sites=sites.count()
-    print 'sites found', num_sites
-    for site in sites.all():
-        i+=1
-        print "{0} of {1} sites scanned {2} success {3} failure".format(i, num_sites, successfuls, failures)
-        poly = site.geom
-        school_sites = []
-        for school in (edu_schools.filter(location__distance_lte=(poly, Distance(m=150)))
-                                         .annotate(distance=TheDistance('location', poly))
-                                         .order_by('distance').all()):
-            if school.establishmentname != site.distname:
-                print school.establishmentname, site.distname
-                if school.establishmentname and  site.distname:
-                    school_sites.append([Levenshtein.ratio(school.establishmentname, site.distname), school, site])
-            else:
-                print 'success'
-                EdubaseSite.objects.create(school=school, site=site)
-                successfuls+=1
-                break
-        else:
-            if school_sites:
-                a = sorted(school_sites, key=itemgetter(1))
-                if a[0][0] > 0.7 :
-                    EdubaseSite.objects.create(school=a[0][1], site=a[0][2])
-                    successfuls+=1
-                else:
-                    failures+=1
-                    print 'failed for', site.distname
-        school_sites = []
-        for school in (seed_schools.filter(location__distance_lte=(poly, Distance(m=150)))
-                                          .annotate(distance=TheDistance('location', poly))
-                                          .order_by('distance').all()):
-            if school.schoolname != site.distname:
-                if school.schoolname and  site.distname:
-                    school_sites.append([Levenshtein.ratio(school.schoolname, site.distname), school, site])
-            else:
-                print 'success'
-                SeedSite.objects.create(school=a[0][1], site=a[0][2])
-                successfuls+=1
-                break
-        else:
-            if school_sites:
-                a = sorted(school_sites, key=itemgetter(1))
-                if a[0][0] > 0.7 :
-                    SeedSite.objects.create(school=a[0][1], site=a[0][2])
-                    successfuls+=1
-                else:
-                    failures+=1
-                    print 'failed for', site.distname
-    return HttpResponse(response)

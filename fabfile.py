@@ -158,7 +158,13 @@ def import_shp():
             template = other
 
 
+def import_osm():
+    imppath =  os.path.join(PROJECT_DIR, 'data', 'osm')
 
+    with fab.lcd(imppath):
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname=osopen_data user=osopen" schools.osm '
+                '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024')
+        fab.local(cmd)
 
 
 def prepend_headers():
@@ -306,14 +312,15 @@ def seed_sql_import():
 
 def combine_edubase_seed():
 
-    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE IF EXISTS schools;"')
+    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE IF EXISTS school;"')
     create_sql = """
-    CREATE TABLE schools
+    CREATE TABLE school
     (
       source character varying(8),
       uid integer,
       local_authority character varying(255),
       schoolname character varying(255),
+      status_name character varying(32),
       postcode character varying(8),
       street character varying(255),
       locality character varying(255),
@@ -323,14 +330,14 @@ def combine_edubase_seed():
       website character varying(255),
       location geometry(Point,4326),
       id serial NOT NULL,
-      CONSTRAINT school_id_pk PRIMARY KEY (id)
+      PRIMARY KEY (id)
     );
 
-    ALTER TABLE schools
+    ALTER TABLE school
       OWNER TO osopen;
 
-    CREATE INDEX schools_geog_idx
-      ON schools
+    CREATE INDEX school_geog_idx
+      ON school
       USING gist
       (location);
     """
@@ -339,21 +346,22 @@ def combine_edubase_seed():
 
 
     combine_schools_sql = """
-    INSERT INTO schools (source, uid, local_authority,
-        schoolname, postcode, street, locality, town,
+    INSERT INTO school (source, uid, local_authority,
+        schoolname, status_name, postcode, street, locality, town,
         phone, phaseofeducation, website, location)
     SELECT
       'SEED' as source,
       seed_data.seedcode::integer as uid,
       seed_data.laname as local_authority,
       seed_data.schoolname,
+      'open' as status_name,
       trim(seed_data.postcode),
       seed_data.address1 as street,
       seed_data.address2 as locality,
       replace(seed_data.address3, ' - ', '') as town,
       seed_data.phone,
-      replace(replace(seed_data.primary_school, ' ', ''), '-','') ||
-      replace(replace(seed_data.secondary, ' ', ''), '-','')
+      trim(replace(replace(seed_data.primary_school, ' ', ''), '-','') || ' ' ||
+      replace(replace(seed_data.secondary, ' ', ''), '-',''))
       as phaseofeducation,
       '' as website,
       seed_data.location::geometry
@@ -365,6 +373,7 @@ def combine_edubase_seed():
       edubase.urn::integer,
       edubase.la_name,
       edubase.establishmentname,
+      edubase.establishmentstatus_name,
       trim(edubase.postcode),
       edubase.street,
       edubase.locality,
@@ -377,4 +386,30 @@ def combine_edubase_seed():
       public.edubase
     """
     fab.local('psql -d osopen_data -U osopen -c "{0}"'.format(combine_schools_sql))
+
+
+def get_osm_schooldata():
+    """
+    GET /api/0.6/map?bbox=left,bottom,right,top
+
+    where:
+
+    left is the longitude of the left (westernmost) side of the bounding box, or minlon.
+    bottom is the latitude of the bottom (southernmost) side of the bounding box, or minlat.
+    right is the longitude of the right (easternmost) side of the bounding box, or maxlon.
+    top is the latitude of the top (northernmost) side of the bounding box, or maxlat.
+
+    Bounding Box:
+    NE 55.811741, 1.76896
+    SW 49.871159, -6.37988
+    """
+
+    url = 'http://www.overpass-api.de/api/xapi_meta?*[amenity=school][bbox=-6,50,2,61]'
+    # Make data queries to jXAPI
+    schoolxml = urllib.urlopen(url).read()
+    schools_file =  open(os.path.join(PROJECT_DIR, 'data', 'osm', 'schools.osm'), 'r')
+    schools_file.write(schoolxml)
+    schools_file.close()
+
+
 
