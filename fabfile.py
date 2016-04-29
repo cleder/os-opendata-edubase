@@ -140,7 +140,6 @@ def unzip_os_local():
             fab.local('unzip {0}'.format(f))
 
 def import_shp():
-
     inpath = os.path.join(PROJECT_DIR, 'data')
     # shp2pgsql does not like the directorynames so we rename them
     for d in glob.glob(os.path.join(inpath, 'OSOpenMapLocal (ESRI Shape File) *')):
@@ -410,6 +409,22 @@ def get_osm_schooldata():
     schools_file =  open(os.path.join(PROJECT_DIR, 'data', 'osm', 'schools.osm'), 'r')
     schools_file.write(schoolxml)
     schools_file.close()
+
+
+def init_db():
+    unzip_codepo()
+    unzip_os_local()
+    get_osm_schooldata()
+    create_db()
+    postcode_sql_import()
+    edubase_import()
+    edubase_sql_import()
+    seed_import()
+    seed_sql_import()
+    combine_edubase_seed()
+    import_shp()
+    import_osm()
+
 
 
 
