@@ -1,6 +1,6 @@
 #
 from collections import Counter
-import json
+import json, random
 from operator import itemgetter
 
 import Levenshtein
@@ -18,7 +18,7 @@ from django.views.generic import View
 from djgeojson.views import GeoJSONResponseMixin
 
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
-from .models import School, SchoolSite
+from .models import School, SchoolSite, Multipolygons
 from .utils import tokenize
 
 
@@ -38,7 +38,9 @@ def get_schools_nearby(geom):
 
 # simple views
 def index(request):
-     return render(request, 'home.html')
+    site_ids = school_sites.values_list('gid', flat=True)
+    context = {'start_site': random.choice(site_ids)}
+    return render(request, 'home.html', context=context)
 
 
 def logout(request):
@@ -76,6 +78,7 @@ def auto_assign(request):
             if school.cleaned_name_no_type == site.cleaned_name_no_type and len(schools)==1:
                 assign_school_to_site(school,site)
                 continue
+        else:
             print 'FAIL'
 
 
@@ -85,9 +88,15 @@ class AssignPolyToSchool(TemplateView):
 
     def get(self, request, gid):
         site = school_sites.get(gid=gid)
+        schools_nearby = get_schools_nearby(site.geom)
+        osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
         next_site = school_sites.filter(gid__gt=gid).first()
         prev_site = school_sites.filter(gid__lt=gid).last()
-        context = {'site': site, 'next_site': next_site, 'prev_site': prev_site}
+        context = {'site': site,
+                   'schools_nearby': schools_nearby,
+                   'osm_polys': osm_polys,
+                   'next_site': next_site,
+                   'prev_site': prev_site}
         return self.render_to_response(context)
 
 
@@ -110,6 +119,18 @@ class SchoolNameGeoJsonView(GeoJSONResponseMixin, View):
         site = school_sites.get(gid=self.gid)
         return get_schools_nearby(site.geom)
 
+
+    def get(self, request, gid):
+        self.gid = gid
+        return self.render_to_response(None)
+
+class OsmSchoolGeoJsonView(GeoJSONResponseMixin, View):
+
+    geometry_field = 'wkb_geometry'
+
+    def get_queryset(self):
+        site = school_sites.get(gid=self.gid)
+        return Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
 
     def get(self, request, gid):
         self.gid = gid

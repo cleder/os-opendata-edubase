@@ -161,8 +161,9 @@ def import_osm():
     imppath =  os.path.join(PROJECT_DIR, 'data', 'osm')
 
     with fab.lcd(imppath):
-        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname=osopen_data user=osopen" schools.osm '
-                '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024')
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname=osopen_data user=osopen" {0}/schools.osm '
+                '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
+                '-overwrite').format(imppath)
         fab.local(cmd)
 
 
@@ -204,6 +205,7 @@ def create_db():
         fab.local('sudo -u postgres psql -d osopen_data -c "CREATE EXTENSION postgis;"')
         fab.local('sudo -u postgres psql -d osopen_data -c "GRANT ALL ON geometry_columns TO PUBLIC;"')
         fab.local('sudo -u postgres psql -d osopen_data -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"')
+        fab.local('sudo -u postgres psql -d osopen_data -c "CREATE EXTENSION hstore;"')
 
 
 def ogr2ogr_import_codepoint():

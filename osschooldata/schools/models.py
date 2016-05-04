@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 #from django.db import models
 from django.contrib.gis.db import models
+from django.contrib.postgres.fields import HStoreField
 from django.utils.functional import cached_property
 
 from .utils import tokenize, STOP_WORDS, SCHOOL_TYPES
@@ -200,3 +201,102 @@ class Edubase(models.Model):
     class Meta:
         managed = False
         db_table = 'edubase'
+
+###############################################################
+# OpenStreetMap
+
+class Lines(models.Model):
+    ogc_fid = models.AutoField(primary_key=True)
+    wkb_geometry = models.LineStringField(blank=True, null=True)
+    osm_id = models.CharField(max_length=500, blank=True, null=True)
+    name = models.CharField(max_length=500, blank=True, null=True)
+    highway = models.CharField(max_length=500, blank=True, null=True)
+    waterway = models.CharField(max_length=500, blank=True, null=True)
+    aerialway = models.CharField(max_length=500, blank=True, null=True)
+    barrier = models.CharField(max_length=500, blank=True, null=True)
+    man_made = models.CharField(max_length=500, blank=True, null=True)
+    other_tags = HStoreField()
+
+    class Meta:
+        managed = False
+        db_table = 'lines'
+
+
+class Multilinestrings(models.Model):
+    ogc_fid = models.AutoField(primary_key=True)
+    wkb_geometry = models.MultiLineStringField(blank=True, null=True)
+    osm_id = models.CharField(max_length=500, blank=True, null=True)
+    name = models.CharField(max_length=500, blank=True, null=True)
+    type = models.CharField(max_length=500, blank=True, null=True)
+    other_tags = HStoreField()
+
+    class Meta:
+        managed = False
+        db_table = 'multilinestrings'
+
+
+class Multipolygons(models.Model):
+    ogc_fid = models.AutoField(primary_key=True)
+    wkb_geometry = models.MultiPolygonField(blank=True, null=True)
+    osm_id = models.CharField(max_length=500, blank=True, null=True)
+    osm_way_id = models.CharField(max_length=500, blank=True, null=True)
+    name = models.CharField(max_length=500, blank=True, null=True)
+    type = models.CharField(max_length=500, blank=True, null=True)
+    aeroway = models.CharField(max_length=500, blank=True, null=True)
+    amenity = models.CharField(max_length=500, blank=True, null=True)
+    admin_level = models.CharField(max_length=500, blank=True, null=True)
+    barrier = models.CharField(max_length=500, blank=True, null=True)
+    boundary = models.CharField(max_length=500, blank=True, null=True)
+    building = models.CharField(max_length=500, blank=True, null=True)
+    craft = models.CharField(max_length=500, blank=True, null=True)
+    geological = models.CharField(max_length=500, blank=True, null=True)
+    historic = models.CharField(max_length=500, blank=True, null=True)
+    land_area = models.CharField(max_length=500, blank=True, null=True)
+    landuse = models.CharField(max_length=500, blank=True, null=True)
+    leisure = models.CharField(max_length=500, blank=True, null=True)
+    man_made = models.CharField(max_length=500, blank=True, null=True)
+    military = models.CharField(max_length=500, blank=True, null=True)
+    natural = models.CharField(max_length=500, blank=True, null=True)
+    office = models.CharField(max_length=500, blank=True, null=True)
+    place = models.CharField(max_length=500, blank=True, null=True)
+    shop = models.CharField(max_length=500, blank=True, null=True)
+    sport = models.CharField(max_length=500, blank=True, null=True)
+    tourism = models.CharField(max_length=500, blank=True, null=True)
+    other_tags = HStoreField()
+
+    class Meta:
+        managed = False
+        db_table = 'multipolygons'
+
+
+class OtherRelations(models.Model):
+    ogc_fid = models.AutoField(primary_key=True)
+    wkb_geometry = models.GeometryCollectionField(blank=True, null=True)
+    osm_id = models.CharField(max_length=500, blank=True, null=True)
+    name = models.CharField(max_length=500, blank=True, null=True)
+    type = models.CharField(max_length=500, blank=True, null=True)
+    other_tags = HStoreField()
+
+    class Meta:
+        managed = False
+        db_table = 'other_relations'
+
+
+class Points(models.Model):
+    ogc_fid = models.AutoField(primary_key=True)
+    wkb_geometry = models.PointField(blank=True, null=True)
+    osm_id = models.CharField(max_length=500, blank=True, null=True)
+    name = models.CharField(max_length=500, blank=True, null=True)
+    barrier = models.CharField(max_length=500, blank=True, null=True)
+    highway = models.CharField(max_length=500, blank=True, null=True)
+    ref = models.CharField(max_length=500, blank=True, null=True)
+    address = models.CharField(max_length=500, blank=True, null=True)
+    is_in = models.CharField(max_length=500, blank=True, null=True)
+    place = models.CharField(max_length=500, blank=True, null=True)
+    man_made = models.CharField(max_length=500, blank=True, null=True)
+    other_tags = HStoreField()
+
+    class Meta:
+        managed = False
+        db_table = 'points'
+

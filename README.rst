@@ -16,3 +16,14 @@ Start django application with `python manage.py runserver 0.0.0.0:8017`
 .. _ordnancesurvey: https://www.ordnancesurvey.co.uk/opendatadownload/products.html
 .. _edubase: http://www.education.gov.uk/edubase/home.xhtml
 .. _seed: http://www.gov.scot/Topics/Statistics/Browse/School-Education/Datasets/contactdetails
+
+Starting the Django application
+--------------------------------
+
+Activate the virtual environment and start django::
+
+    christian@darkstar:~/devel$ cd os-opendata/
+    christian@darkstar:~/devel/os-opendata$ source bin/activate
+    (os-opendata)christian@darkstar:~/devel/os-opendata$ cd osschooldata/
+    (os-opendata)christian@darkstar:~/devel/os-opendata/osschooldata$ python manage.py createsuperuser
+    (os-opendata)christian@darkstar:~/devel/os-opendata/osschooldata$ python manage.py runserver 0.0.0.0:8017
