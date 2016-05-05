@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    'social.apps.django_app.default',
+    'leaflet',
     'schools',
 ]
 
@@ -65,6 +67,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social.apps.django_app.context_processors.backends',
+                'social.apps.django_app.context_processors.login_redirect',
             ],
         },
     },
@@ -83,6 +87,63 @@ DATABASES = {
          'USER': 'osopen',
     },
 }
+
+###########################################################################
+# leaflet
+LEAFLET_CONFIG = {
+    'TILES': [
+        ('OpenStreetMap',
+        'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {'attribution': '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'}),
+        ('Satelite',
+        'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {'attribution': 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'})
+        ]
+}
+
+############################################################################
+# social auth settings
+
+SOCIAL_AUTH_OPENSTREETMAP_KEY = 'ConsumerKey'
+SOCIAL_AUTH_OPENSTREETMAP_SECRET = 'ConsumerSecret'
+
+AUTHENTICATION_BACKENDS = (
+    'social.backends.openstreetmap.OpenStreetMapOAuth',
+#    'social.backends.email.EmailAuth',
+    'social.backends.username.UsernameAuth',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+
+SOCIAL_AUTH_STRATEGY = 'social.strategies.django_strategy.DjangoStrategy'
+SOCIAL_AUTH_STORAGE = 'social.apps.django_app.default.models.DjangoStorage'
+SOCIAL_AUTH_FORCE_EMAIL_VALIDATION = True
+
+#SOCIAL_AUTH_EMAIL_FORM_HTML = 'email_signup.html'
+#SOCIAL_AUTH_EMAIL_VALIDATION_FUNCTION = 'bluebird.mail.send_validation'
+#SOCIAL_AUTH_EMAIL_VALIDATION_URL = '/email-sent/'
+#SOCIAL_AUTH_USERNAME_FORM_HTML = 'username_signup.html'
+
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+URL_PATH = ''
+
+
+SOCIAL_AUTH_PIPELINE = (
+    'social.pipeline.social_auth.social_details',
+    'social.pipeline.social_auth.social_uid',
+    'social.pipeline.social_auth.auth_allowed',
+    'social.pipeline.social_auth.social_user',
+    'social.pipeline.user.get_username',
+#    '.pipeline.require_email',
+    'social.pipeline.mail.mail_validation',
+    'social.pipeline.user.create_user',
+    'social.pipeline.social_auth.associate_user',
+    'social.pipeline.debug.debug',
+    'social.pipeline.social_auth.load_extra_data',
+    'social.pipeline.user.user_details',
+    'social.pipeline.debug.debug'
+)
 
 
 # Password validation
@@ -122,3 +183,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+
+try:
+    from settings_local import *  # local settings
+except ImportError:
+    pass

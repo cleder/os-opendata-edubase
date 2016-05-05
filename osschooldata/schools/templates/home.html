@@ -1,0 +1,64 @@
+<!doctype html>
+{% load leaflet_tags %}
+<html>
+  <head>
+    <title>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</title>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+      h1 { padding: 0 30px; }
+      .buttons { display: block; table-layout: fixed; border-radius: 7px; border: 1px solid #ccc;
+                 margin: 20px; background: #eee; padding: 30px; }
+      .buttons > div .btn { margin: 5px 10px; }
+      .buttons > div:not(:first-child) { margin-top: 10px; border-top: 1px solid #ccc;
+                                         padding-top: 10px; text-align: center; }
+      .user-details { text-align: center; font-size: 16px; font-weight: bold; }
+    </style>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    {% leaflet_js %}
+    {% leaflet_css %}
+  </head>
+  <body>
+    <h1>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</h1>
+
+    <div class="buttons">
+      {% if user.is_authenticated %}
+        <div class="user-details">
+          You are logged in as <code>{{ user.username }}</code>!
+        </div>
+      {% endif %}
+
+      {% if not user.is_authenticated %}
+      <div>
+        <a class="btn btn-primary" id="osm-button" name="osm" href="{% url 'social:begin' backend='openstreetmap' %}">
+          Login with OpenStreetMap
+        </a>
+      </div>
+      {% endif %}
+
+      {% if user.is_authenticated %}
+      <div>
+        <a class="btn btn-primary" href="{% url 'logout' %}" id="logout">
+          <i class="fa fa-sign-out"></i>
+          Logout
+        </a>
+      </div>
+      <div>
+        <a href="{% url 'assign-os-school' start_site %}"> Start </a>
+      </div>
+      {% endif %}
+    </div>
+    <div>
+    {% leaflet_map "main" callback="main_map_init" %}
+    </div>
+    <script type="text/javascript">
+        function main_map_init (map, options) {
+            // set up the map
+            // start the map in England
+            map.setView(new L.LatLng(53.0, 0.79),8);
+        }
+    </script>
+  </body>
+</html>

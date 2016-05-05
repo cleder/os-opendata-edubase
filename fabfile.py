@@ -140,7 +140,6 @@ def unzip_os_local():
             fab.local('unzip {0}'.format(f))
 
 def import_shp():
-
     inpath = os.path.join(PROJECT_DIR, 'data')
     # shp2pgsql does not like the directorynames so we rename them
     for d in glob.glob(os.path.join(inpath, 'OSOpenMapLocal (ESRI Shape File) *')):
@@ -158,7 +157,14 @@ def import_shp():
             template = other
 
 
+def import_osm():
+    imppath =  os.path.join(PROJECT_DIR, 'data', 'osm')
 
+    with fab.lcd(imppath):
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname=osopen_data user=osopen" {0}/schools.osm '
+                '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
+                '-overwrite').format(imppath)
+        fab.local(cmd)
 
 
 def prepend_headers():
@@ -199,6 +205,7 @@ def create_db():
         fab.local('sudo -u postgres psql -d osopen_data -c "CREATE EXTENSION postgis;"')
         fab.local('sudo -u postgres psql -d osopen_data -c "GRANT ALL ON geometry_columns TO PUBLIC;"')
         fab.local('sudo -u postgres psql -d osopen_data -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"')
+        fab.local('sudo -u postgres psql -d osopen_data -c "CREATE EXTENSION hstore;"')
 
 
 def ogr2ogr_import_codepoint():
@@ -302,6 +309,123 @@ def seed_sql_import():
                 INTO seed_data;"''')
     fab.local('psql -d osopen_data -U osopen -c "CREATE INDEX seed_location_geog_idx ON seed_data USING GIST(location);"')
     fab.local('psql -d osopen_data -U osopen -c "ALTER TABLE seed_data ADD COLUMN id SERIAL PRIMARY KEY;"')
+
+
+def combine_edubase_seed():
+
+    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE IF EXISTS school;"')
+    create_sql = """
+    CREATE TABLE school
+    (
+      source character varying(8),
+      uid integer,
+      local_authority character varying(255),
+      schoolname character varying(255),
+      status_name character varying(32),
+      postcode character varying(8),
+      street character varying(255),
+      locality character varying(255),
+      town character varying(255),
+      phone character varying(32),
+      phaseofeducation character varying(32),
+      website character varying(255),
+      location geometry(Point,4326),
+      id serial NOT NULL,
+      PRIMARY KEY (id)
+    );
+
+    ALTER TABLE school
+      OWNER TO osopen;
+
+    CREATE INDEX school_geog_idx
+      ON school
+      USING gist
+      (location);
+    """
+
+    fab.local('psql -d osopen_data -U osopen -c "{0}"'.format(create_sql))
+
+
+    combine_schools_sql = """
+    INSERT INTO school (source, uid, local_authority,
+        schoolname, status_name, postcode, street, locality, town,
+        phone, phaseofeducation, website, location)
+    SELECT
+      'SEED' as source,
+      seed_data.seedcode::integer as uid,
+      seed_data.laname as local_authority,
+      seed_data.schoolname,
+      'open' as status_name,
+      trim(seed_data.postcode),
+      seed_data.address1 as street,
+      seed_data.address2 as locality,
+      replace(seed_data.address3, ' - ', '') as town,
+      seed_data.phone,
+      trim(replace(replace(seed_data.primary_school, ' ', ''), '-','') || ' ' ||
+      replace(replace(seed_data.secondary, ' ', ''), '-',''))
+      as phaseofeducation,
+      '' as website,
+      seed_data.location::geometry
+    FROM
+      public.seed_data
+    union
+    SELECT
+      'EDUBASE' as source,
+      edubase.urn::integer,
+      edubase.la_name,
+      edubase.establishmentname,
+      edubase.establishmentstatus_name,
+      trim(edubase.postcode),
+      edubase.street,
+      edubase.locality,
+      edubase.town,
+      edubase.telephonenum,
+      edubase.phaseofeducation_name,
+      edubase.schoolwebsite,
+      edubase.location::geometry
+    FROM
+      public.edubase
+    """
+    fab.local('psql -d osopen_data -U osopen -c "{0}"'.format(combine_schools_sql))
+
+
+def get_osm_schooldata():
+    """
+    GET /api/0.6/map?bbox=left,bottom,right,top
+
+    where:
+
+    left is the longitude of the left (westernmost) side of the bounding box, or minlon.
+    bottom is the latitude of the bottom (southernmost) side of the bounding box, or minlat.
+    right is the longitude of the right (easternmost) side of the bounding box, or maxlon.
+    top is the latitude of the top (northernmost) side of the bounding box, or maxlat.
+
+    Bounding Box:
+    NE 55.811741, 1.76896
+    SW 49.871159, -6.37988
+    """
+
+    url = 'http://www.overpass-api.de/api/xapi_meta?*[amenity=school][bbox=-6,50,2,61]'
+    # Make data queries to jXAPI
+    schoolxml = urllib.urlopen(url).read()
+    schools_file =  open(os.path.join(PROJECT_DIR, 'data', 'osm', 'schools.osm'), 'r')
+    schools_file.write(schoolxml)
+    schools_file.close()
+
+
+def init_db():
+    unzip_codepo()
+    unzip_os_local()
+    get_osm_schooldata()
+    create_db()
+    postcode_sql_import()
+    edubase_import()
+    edubase_sql_import()
+    seed_import()
+    seed_sql_import()
+    combine_edubase_seed()
+    import_shp()
+    import_osm()
 
 
 

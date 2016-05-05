@@ -1,0 +1,14 @@
+*.bak
+*.box
+*.db
+*.dot
+*.log
+*.log.*
+*.py[co]
+*.sublime-project
+*.sublime-workspace
+*.tmproj
+*~
+.*.swp
+.DS_Store
+.*
