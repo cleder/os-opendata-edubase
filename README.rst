@@ -51,14 +51,21 @@ Activate the virtual environment and start django::
 Goto `http://localhost:8017/` in your browser.
 
 Click on login to start
+
 .. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/login.png
+
 Once authenticated start by clicking on *start*
+
 .. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/logged_in.png
+
 If data from OSM is available it will display as an amber polygon, The Data from
 Ordnancesurvey is displayed as a blue polygon and the data from seed/edubase as
 a blue marker. Below the map details of this data is displayed.
+
 .. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/assign.png
+
 If there is no openstreetmap data only the Ordnancesurvey data is displayed.
+
 .. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/assign-nosm.png
 
 TODO
