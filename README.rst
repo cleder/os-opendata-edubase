@@ -45,6 +45,7 @@ Activate the virtual environment and start django::
     christian@darkstar:~/devel$ cd os-opendata/
     christian@darkstar:~/devel/os-opendata$ source bin/activate
     (os-opendata)christian@darkstar:~/devel/os-opendata$ cd osschooldata/
+    (os-opendata)christian@darkstar:~/devel/os-opendata/osschooldata$ python manage.py migrate
     (os-opendata)christian@darkstar:~/devel/os-opendata/osschooldata$ python manage.py createsuperuser
     (os-opendata)christian@darkstar:~/devel/os-opendata/osschooldata$ python manage.py runserver 0.0.0.0:8017
 
