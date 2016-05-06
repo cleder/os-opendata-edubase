@@ -108,8 +108,8 @@ SOCIAL_AUTH_OPENSTREETMAP_KEY = 'ConsumerKey'
 SOCIAL_AUTH_OPENSTREETMAP_SECRET = 'ConsumerSecret'
 
 AUTHENTICATION_BACKENDS = (
-    'social.backends.openstreetmap.OpenStreetMapOAuth',
-#    'social.backends.email.EmailAuth',
+    #'social.backends.openstreetmap.OpenStreetMapOAuth',
+    'schools.backends.osm_test.OpenStreetMapTestOAuth',
     'social.backends.username.UsernameAuth',
     'django.contrib.auth.backends.ModelBackend',
 )
@@ -119,10 +119,7 @@ SOCIAL_AUTH_STRATEGY = 'social.strategies.django_strategy.DjangoStrategy'
 SOCIAL_AUTH_STORAGE = 'social.apps.django_app.default.models.DjangoStorage'
 SOCIAL_AUTH_FORCE_EMAIL_VALIDATION = True
 
-#SOCIAL_AUTH_EMAIL_FORM_HTML = 'email_signup.html'
-#SOCIAL_AUTH_EMAIL_VALIDATION_FUNCTION = 'bluebird.mail.send_validation'
-#SOCIAL_AUTH_EMAIL_VALIDATION_URL = '/email-sent/'
-#SOCIAL_AUTH_USERNAME_FORM_HTML = 'username_signup.html'
+
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'

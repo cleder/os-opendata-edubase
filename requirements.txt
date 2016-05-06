@@ -16,8 +16,9 @@ pickleshare==0.6
 psycopg2==2.6.1
 ptyprocess==0.5.1
 pycrypto==2.6.1
+pygeoif==0.6
 python-Levenshtein==0.12.0
 python-social-auth==0.2.18
+requests-oauthlib==0.6.1
 simplegeneric==0.8.1
 traitlets==4.1.0
-

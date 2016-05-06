@@ -16,6 +16,7 @@ from django.views.generic import TemplateView
 from django.views.generic import View
 
 from djgeojson.views import GeoJSONResponseMixin
+from pygeoif import MultiPolygon, Polygon
 
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
 from .models import School, SchoolSite, Multipolygons
@@ -92,6 +93,13 @@ class AssignPolyToSchool(TemplateView):
         osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
         next_site = school_sites.filter(gid__gt=gid).first()
         prev_site = school_sites.filter(gid__lt=gid).last()
+        mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
+        #access_token = request.user.social_auth.first().access_token
+        #oauth = OAuth1(settings.SOCIAL_AUTH_OPENSTREETMAP_KEY,
+        #               client_secret=settings.SOCIAL_AUTH_OPENSTREETMAP_SECRET,
+        #               resource_owner_key=access_token['oauth_token'],
+        #               resource_owner_secret=access_token['oauth_token_secret'],
+        #               verifier=verifier)
         context = {'site': site,
                    'schools_nearby': schools_nearby,
                    'osm_polys': osm_polys,
