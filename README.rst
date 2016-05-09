@@ -25,7 +25,40 @@ The Data is derived from:
 'All EduBase data.csv' from edubase_
 'School Contact Details' from the  Scottish Government seed_
 
-Download the data from the above sources into the data directory.
+From https://www.ordnancesurvey.co.uk/opendatadownload/products.html
+you have to download the
+**`OS Open Map - Local`** (all squares) and **`Code-Point Open`** Products.
+
+You will also need the csv files from EduBase and seed for the schooldata
+**`All EduBase data.csv`** from http://www.education.gov.uk/edubase/home.xhtml
+and **`School contact details`** from
+http://www.gov.scot/Topics/Statistics/Browse/School-Education/Datasets/contactdetails
+
+The latter is in excel format and has to be converted into csv before
+using it. The headers must be:
+'SeedCode',
+'LA Name',
+'Centre Type',
+'School Name',
+'Address 1',
+'Address 2',
+'Address 3',
+'Post code',
+'E-mail',
+'Phone',
+'Primary_school',
+'Secondary',
+'Special',
+'Primary roll',
+'Secondary roll',
+'Special roll',
+'Primary1',
+'Secondary1',
+'Special1',
+'Denomination'
+so rename them accordingly and remove the columns not included here.
+
+Put the data from the above sources into the data directory.
 It should have these files in it::
 
     seeddata2015.csv
@@ -88,7 +121,6 @@ It should have these files in it::
     oprvrs_essh_gb.zip
 
 
-
 Requirements
 -------------
 
@@ -102,6 +134,7 @@ Import
 The import script is written in fabric. Excecute is as `fab init_db`.
 If all goes well you can now connect to the database and inpect the
 data.
+
 
 
 Starting the Django application
