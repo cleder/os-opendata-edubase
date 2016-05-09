@@ -5,7 +5,7 @@ from operator import itemgetter
 
 import Levenshtein
 from django.db import connection
-
+from django.conf import settings
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
 from django.contrib.auth import logout as auth_logout
@@ -22,6 +22,7 @@ from .models import Edubase, FunctionalSite, Postcodes, SeedData
 from .models import School, SchoolSite, Multipolygons
 from .utils import tokenize
 
+import osmoapi
 
 open_schools = School.objects.filter(status_name__startswith = 'Open')
 school_sites = FunctionalSite.objects.filter(sitetheme = 'Education')
@@ -94,12 +95,14 @@ class AssignPolyToSchool(TemplateView):
         next_site = school_sites.filter(gid__gt=gid).first()
         prev_site = school_sites.filter(gid__lt=gid).last()
         mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
-        #access_token = request.user.social_auth.first().access_token
-        #oauth = OAuth1(settings.SOCIAL_AUTH_OPENSTREETMAP_KEY,
-        #               client_secret=settings.SOCIAL_AUTH_OPENSTREETMAP_SECRET,
-        #               resource_owner_key=access_token['oauth_token'],
-        #               resource_owner_secret=access_token['oauth_token_secret'],
-        #               verifier=verifier)
+        access_token = request.user.social_auth.first().access_token
+        api = osmoapi.OSMOAuthAPI(
+                client_key= settings.SOCIAL_AUTH_OPENSTREETMAP_KEY,
+                client_secret=settings.SOCIAL_AUTH_OPENSTREETMAP_SECRET,
+                resource_owner_key=access_token['oauth_token'],
+                resource_owner_secret=access_token['oauth_token_secret'])
+        #cs = api.create_changeset('osmoapi', 'Testing oauth api')
+        #assert api.close_changeset(cs)
         context = {'site': site,
                    'schools_nearby': schools_nearby,
                    'osm_polys': osm_polys,
