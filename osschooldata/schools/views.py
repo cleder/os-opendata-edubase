@@ -16,7 +16,7 @@ from django.views.generic import TemplateView
 from django.views.generic import View
 
 from djgeojson.views import GeoJSONResponseMixin
-from pygeoif import MultiPolygon, Polygon
+from pygeoif import MultiPolygon, Polygon, Point
 
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
 from .models import School, SchoolSite, Multipolygons
@@ -94,21 +94,37 @@ class AssignPolyToSchool(TemplateView):
         osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
         next_site = school_sites.filter(gid__gt=gid).first()
         prev_site = school_sites.filter(gid__lt=gid).last()
-        mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
-        access_token = request.user.social_auth.first().access_token
-        api = osmoapi.OSMOAuthAPI(
-                client_key= settings.SOCIAL_AUTH_OPENSTREETMAP_KEY,
-                client_secret=settings.SOCIAL_AUTH_OPENSTREETMAP_SECRET,
-                resource_owner_key=access_token['oauth_token'],
-                resource_owner_secret=access_token['oauth_token_secret'])
-        #cs = api.create_changeset('osmoapi', 'Testing oauth api')
-        #assert api.close_changeset(cs)
         context = {'site': site,
                    'schools_nearby': schools_nearby,
                    'osm_polys': osm_polys,
                    'next_site': next_site,
                    'prev_site': prev_site}
         return self.render_to_response(context)
+
+    def post(self, request, gid):
+        ###### osmoapi test
+        site = school_sites.get(gid=gid)
+        mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
+        import ipdb; ipdb.set_trace()
+
+        access_token = request.user.social_auth.first().access_token
+        api = osmoapi.OSMOAuthAPI(
+                client_key= settings.SOCIAL_AUTH_OPENSTREETMAP_KEY,
+                client_secret=settings.SOCIAL_AUTH_OPENSTREETMAP_SECRET,
+                resource_owner_key=access_token['oauth_token'],
+                resource_owner_secret=access_token['oauth_token_secret'])
+        if schools_nearby.count():
+            school = schools_nearby.first()
+            cs = api.create_changeset('osmoapi', 'Testing oauth api')
+            point = Point(school.location.coords)
+            change = osmoapi.OsmChange(cs)
+            change.create_node(point, amenity='school', name=school.name)
+            #way = mp.geoms[0].exterior
+            #change.create_way(way, amenity='school', name=school.name)
+            change.create_multipolygon(mp, amenity='school', name=school.name)
+            api.diff_upload(change)
+            assert api.close_changeset(cs)
+        ##### end osmoapi test
 
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
