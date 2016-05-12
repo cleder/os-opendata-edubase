@@ -1,0 +1,110 @@
+<!doctype html>
+{% load leaflet_tags %}
+<html>
+  <head>
+    <title>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</title>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+      h1 { padding: 0 30px; }
+      .buttons { display: block; table-layout: fixed; border-radius: 7px; border: 1px solid #ccc;
+                 margin: 20px; background: #eee; padding: 30px; }
+      .buttons > div .btn { margin: 5px 10px; }
+      .buttons > div:not(:first-child) { margin-top: 10px; border-top: 1px solid #ccc;
+                                         padding-top: 10px; text-align: center; }
+      .user-details { text-align: center; font-size: 16px; font-weight: bold; }
+      .leaflet-edit-osm a {font-weight: bold; width: 7em!important;}
+      .leaflet-edit-osm a:before {content: "Edit in ";}
+    </style>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    {% leaflet_js %}
+    {% leaflet_css %}
+    <script src="http://osmlab.github.io/leaflet-edit-osm/leaflet-edit-osm.js"></script>
+  </head>
+  <body>
+    <h1>Assign a OS-Opendata polygon to School</h1>
+
+    <div class="buttons">
+       <h2>{{ site.distname }}</h2>
+       <p>{{ site.classifica }}</p>
+    </div>
+    <div>
+    {% leaflet_map "main" callback="main_map_init" %}
+    </div>
+    <div>
+      <div>
+        <h2>Data from Edubase/SEED</h2>
+        <ul>
+          {% for school in schools_nearby %}
+          <li>
+            <b>{{ school.schoolname }}</b>, {{ school.street }}, {{ school.distance }}
+            <form method="post"> <input type="submit" name="{{ school.id }}" value="{{ button_text }}">
+             {% csrf_token %}
+            </form>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h2>Openstreetmap Data</h2>
+        <ul>
+          {% for school in osm_polys %}
+          <li><b>{{ school.name }}</b>, {{ school.osm_way_id }}, {{ school.other_tags }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="buttons">
+       {% if prev_site %}
+       Previous: <a href="{% url 'assign-os-school' prev_site.gid %}">{{ prev_site.distname}}</a>
+        {% endif %}
+         &nbsp; >>> &nbsp;
+       {% if next_site %}
+       Next: <a href="{% url 'assign-os-school' next_site.gid %}">{{ next_site.distname}}</a>
+        {% endif %}
+
+
+    </div>
+    <script type="text/javascript">
+        function onEachFeature(feature, layer) {
+                if (feature.properties && feature.properties.schoolname) {
+                  layer.bindPopup(feature.properties.schoolname);
+                }
+              };
+
+        function main_map_init (map, options) {
+            // set up the map
+            map.setView(new L.LatLng(53.0, 0.79),8);
+            var dataurl = '{% url "os-school" site.gid %}';
+            var addrdataurl = '{% url "edubase-schools" site.gid %}';
+            var osmdataurl = '{% url "osm-schools" site.gid %}';
+            var osmStyle = {
+                "color": "#ff7800",
+                "weight": 5,
+                "opacity": 0.65
+            };
+            $.getJSON(osmdataurl, function (data) {
+                // Add GeoJSON layer for schools from openstreetmap
+                var layer = L.geoJson(data, style=osmStyle)
+                layer.addTo(map);
+            });
+            // Download GeoJSON via Ajax
+            $.getJSON(dataurl, function (data) {
+                // Add GeoJSON layer for schools for os-open
+                var layer = L.geoJson(data)
+                layer.addTo(map);
+                map.fitBounds(layer.getBounds());
+                map.setZoom(17);
+            });
+            $.getJSON(addrdataurl, function (data) {
+                // Add GeoJSON layer for school address point data
+                var layer = L.geoJson(data, {onEachFeature: onEachFeature})
+                layer.addTo(map);
+            });
+            new leafletEditOsm().addTo(map);
+        }
+    </script>
+  </body>
+</html>
