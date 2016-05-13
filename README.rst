@@ -169,6 +169,14 @@ If there is no openstreetmap data only the Ordnancesurvey data is displayed.
 
 .. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/assign-nosm.png
 
+If there is no data from edubase or seed (i.e. outdated OS-Open data - school is closed):
+
+.. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/assign-no-school.png
+
+The below image indicates that the school that once existed here was closed:
+
+.. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/assign-osm-no-edudata.png
+
 TODO
 ----
 
