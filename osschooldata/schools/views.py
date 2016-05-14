@@ -5,7 +5,7 @@ from operator import itemgetter
 
 import Levenshtein
 from django.db import connection
-
+from django.conf import settings
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
 from django.contrib.auth import logout as auth_logout
@@ -16,15 +16,18 @@ from django.views.generic import TemplateView
 from django.views.generic import View
 
 from djgeojson.views import GeoJSONResponseMixin
+from pygeoif import MultiPolygon, Polygon, Point
 
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
 from .models import School, SchoolSite, Multipolygons
 from .utils import tokenize
 
+import osmoapi
 
 open_schools = School.objects.filter(status_name__startswith = 'Open')
 school_sites = FunctionalSite.objects.filter(sitetheme = 'Education')
 
+button_text = 'Add to OSM'
 
 def assign_school_to_site(school,site):
     print school.schoolname
@@ -96,9 +99,58 @@ class AssignPolyToSchool(TemplateView):
                    'schools_nearby': schools_nearby,
                    'osm_polys': osm_polys,
                    'next_site': next_site,
-                   'prev_site': prev_site}
+                   'prev_site': prev_site,
+                   'button_text': button_text}
         return self.render_to_response(context)
 
+    def post(self, request, gid):
+        site = school_sites.get(gid=gid)
+        mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
+        site = school_sites.get(gid=gid)
+        if 'schools.backends.osm_test.OpenStreetMapTestOAuth' in settings.AUTHENTICATION_BACKENDS:
+            test = True
+        elif 'social.backends.openstreetmap.OpenStreetMapOAuth' in settings.AUTHENTICATION_BACKENDS:
+            test = False
+        idx = None
+        for v, k in request.POST.items():
+            if k == button_text:
+                idx = int(v)
+         ###### osmoapi test
+        if idx is not None:
+            school = open_schools.get(pk=idx)
+            access_token = request.user.social_auth.first().access_token
+            api = osmoapi.OSMOAuthAPI(
+                    client_key= settings.SOCIAL_AUTH_OPENSTREETMAP_KEY,
+                    client_secret=settings.SOCIAL_AUTH_OPENSTREETMAP_SECRET,
+                    resource_owner_key=access_token['oauth_token'],
+                    resource_owner_secret=access_token['oauth_token_secret'],
+                    test = test)
+            cs = api.create_changeset('osmoapi', 'Testing oauth api')
+            point = Point(school.location.coords)
+            change = osmoapi.OsmChange(cs)
+            city = school.town or school.locality
+            kwargs = dict(amenity='school', name=school.name)
+            kwargs['website'] = school.website or ''
+            kwargs['ref:{0}'.format(school.source)] = str(school.uid)
+            kwargs['addr:country'] = 'GB'
+            kwargs['addr:postcode'] = school.postcode or ''
+            kwargs['addr:street'] =school.street or ''
+            kwargs['addr:city'] = city or ''
+            change.create_multipolygon(mp, **kwargs)
+            api.diff_upload(change)
+            assert api.close_changeset(cs)
+        ##### end osmoapi test
+        schools_nearby = get_schools_nearby(site.geom)
+        osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
+        next_site = school_sites.filter(gid__gt=gid).first()
+        prev_site = school_sites.filter(gid__lt=gid).last()
+        context = {'site': site,
+                   'schools_nearby': schools_nearby,
+                   'osm_polys': osm_polys,
+                   'next_site': next_site,
+                   'prev_site': prev_site,
+                   'button_text': button_text}
+        return self.render_to_response(context)
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 
