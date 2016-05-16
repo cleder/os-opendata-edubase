@@ -180,8 +180,7 @@ The below image indicates that the school that once existed here was closed:
 TODO
 ----
 
-Add OpenStreetMap_ api so that one can easily submit data from this application to
-OpenStreetMap without having to copy and paste.
+
 
 
 .. _ordnancesurvey: https://www.ordnancesurvey.co.uk/opendatadownload/products.html
