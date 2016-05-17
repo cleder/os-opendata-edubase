@@ -437,10 +437,8 @@ def get_osm_schooldata():
 def get_sites_near_schools():
     """
     Sites nearby a school:
-
-    SELECT DISTINCT functional_site.gid
-    FROM functional_site, school
-    WHERE ST_Distance_Sphere(ST_Centroid(functional_site.geom), school.location) < 150;
+    all sites correlated with school in ~ 150m
+    -> http://stackoverflow.com/questions/8464666/distance-between-2-points-in-postgis-in-srid-4326-in-metres
     """
 
     fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS functional_site_near_school;"'.format(DB_NAME, DB_USER))
@@ -448,11 +446,22 @@ def get_sites_near_schools():
     SELECT DISTINCT functional_site.gid, school.id
     INTO functional_site_near_school
     FROM functional_site, school
-    WHERE ST_Distance_Sphere(ST_Centroid(functional_site.geom), school.location) < 150;
+    WHERE ST_DWithin(functional_site.geom, school.location, 0.0014);
     '''
     fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, sql_site_near_school))
     fab.local('''psql -d {0} -U {1} -c
-        "ALTER TABLE functional_site_near_school ADD PRIMARY KEY (gid,id);"'''.format(DB_NAME, DB_USER))
+        "ALTER TABLE functional_site_near_school
+         ADD PRIMARY KEY (gid,id);"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c
+        "ALTER TABLE functional_site_near_school
+        ADD CONSTRAINT fk_functional_site
+        FOREIGN KEY (gid)
+        REFERENCES functional_site (gid);"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c
+        "ALTER TABLE functional_site_near_school
+        ADD CONSTRAINT fk_school
+        FOREIGN KEY (id)
+        REFERENCES school (id);"'''.format(DB_NAME, DB_USER))
 
 
 def get_sites_overlapping_osm():
@@ -481,5 +490,5 @@ def init_db():
     combine_edubase_seed()
     import_shp()
     import_osm()
-    get_sites_near_schools()
     get_sites_overlapping_osm()
+    get_sites_near_schools()
