@@ -434,6 +434,39 @@ def get_osm_schooldata():
     schools_file.write(schoolxml)
     schools_file.close()
 
+def get_sites_near_schools():
+    """
+    Sites nearby a school:
+
+    SELECT DISTINCT functional_site.gid
+    FROM functional_site, school
+    WHERE ST_Distance_Sphere(ST_Centroid(functional_site.geom), school.location) < 150;
+    """
+
+    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS functional_site_near_school;"'.format(DB_NAME, DB_USER))
+    sql_site_near_school = '''
+    SELECT DISTINCT functional_site.gid, school.id
+    INTO functional_site_near_school
+    FROM functional_site, school
+    WHERE ST_Distance_Sphere(ST_Centroid(functional_site.geom), school.location) < 150;
+    '''
+    fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, sql_site_near_school))
+    fab.local('''psql -d {0} -U {1} -c
+        "ALTER TABLE functional_site_near_school ADD PRIMARY KEY (gid,id);"'''.format(DB_NAME, DB_USER))
+
+
+def get_sites_overlapping_osm():
+    sql_overlapping = '''
+    SELECT DISTINCT functional_site.gid
+    INTO functional_site_overlaps_osm
+    FROM functional_site, multipolygons
+    WHERE ST_Overlaps(functional_site.geom, multipolygons.wkb_geometry);
+    '''
+    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS functional_site_overlaps_osm;"'.format(DB_NAME, DB_USER))
+    fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, sql_overlapping))
+    fab.local('''psql -d {0} -U {1} -c
+        "ALTER TABLE functional_site_overlaps_osm ADD PRIMARY KEY (gid);"'''.format(DB_NAME, DB_USER))
+
 
 def init_db():
     unzip_codepo()
@@ -448,3 +481,5 @@ def init_db():
     combine_edubase_seed()
     import_shp()
     import_osm()
+    get_sites_near_schools()
+    get_sites_overlapping_osm()
