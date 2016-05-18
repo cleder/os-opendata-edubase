@@ -96,12 +96,12 @@ class Postcodes(models.Model):
 
 class FunctionalSiteNearSchool(models.Model):
     gid = models.ForeignKey(FunctionalSite, models.DO_NOTHING, db_column='gid')
-    id = models.ForeignKey('School', models.DO_NOTHING, db_column='id')
+    school_id = models.ForeignKey('School', models.DO_NOTHING, db_column='school_id')
 
     class Meta:
         managed = False
         db_table = 'functional_site_near_school'
-        unique_together = (('gid', 'id'),)
+        unique_together = (('gid', 'school_id'),)
 
 
 class FunctionalSiteOverlapsOsm(models.Model):

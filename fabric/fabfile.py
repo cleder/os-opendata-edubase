@@ -169,7 +169,11 @@ def import_osm():
                '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
                '-overwrite').format(DB_NAME, DB_USER, imppath)
         fab.local(cmd)
-
+        # college
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1]" {2}/colleges.osm '
+               '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
+               '-append').format(DB_NAME, DB_USER, imppath)
+        fab.local(cmd)
 
 def prepend_headers():
     inpath = os.path.join(PROJECT_DIR, 'data', 'Data', 'CSV')
@@ -433,6 +437,12 @@ def get_osm_schooldata():
     schools_file = open(os.path.join(PROJECT_DIR, 'data', 'osm', 'schools.osm'), 'w')
     schools_file.write(schoolxml)
     schools_file.close()
+    url = 'http://www.overpass-api.de/api/xapi_meta?*[amenity=college][bbox=-6,50,2,61]'
+    # Make data queries to jXAPI
+    collegexml = urllib.urlopen(url).read()
+    college_file = open(os.path.join(PROJECT_DIR, 'data', 'osm', 'colleges.osm'), 'w')
+    college_file.write(collegexml)
+    college_file.close()
 
 def get_sites_near_schools():
     """
@@ -443,22 +453,21 @@ def get_sites_near_schools():
 
     fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS functional_site_near_school;"'.format(DB_NAME, DB_USER))
     sql_site_near_school = '''
-    SELECT DISTINCT functional_site.gid, school.id
+    SELECT DISTINCT functional_site.gid, school.id as school_id
     INTO functional_site_near_school
     FROM functional_site, school
     WHERE ST_DWithin(functional_site.geom, school.location, 0.0014);
     '''
     fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, sql_site_near_school))
     fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
-         ADD PRIMARY KEY (gid,id);"'''.format(DB_NAME, DB_USER))
+         ADD PRIMARY KEY (gid, school_id);"'''.format(DB_NAME, DB_USER))
     fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
         ADD CONSTRAINT fk_functional_site
         FOREIGN KEY (gid)
         REFERENCES functional_site (gid);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c
-        "ALTER TABLE functional_site_near_school
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
         ADD CONSTRAINT fk_school
-        FOREIGN KEY (id)
+        FOREIGN KEY (school_id)
         REFERENCES school (id);"'''.format(DB_NAME, DB_USER))
 
 
