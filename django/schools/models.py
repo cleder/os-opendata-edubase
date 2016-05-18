@@ -91,6 +91,33 @@ class Postcodes(models.Model):
         managed = False
         db_table = 'postcodes'
 
+####################################
+# Site - school - osm relationships
+
+class FunctionalSiteNearSchool(models.Model):
+    gid = models.ForeignKey(FunctionalSite, models.DO_NOTHING, db_column='gid')
+    id = models.ForeignKey('School', models.DO_NOTHING, db_column='id')
+
+    class Meta:
+        managed = False
+        db_table = 'functional_site_near_school'
+        unique_together = (('gid', 'id'),)
+
+
+class FunctionalSiteOverlapsOsm(models.Model):
+    gid = models.ForeignKey(FunctionalSite, models.DO_NOTHING, db_column='gid')
+    ogc_fid = models.ForeignKey('Multipolygons', models.DO_NOTHING, db_column='ogc_fid')
+
+    class Meta:
+        managed = False
+        db_table = 'functional_site_overlaps_osm'
+        unique_together = (('gid', 'ogc_fid'),)
+
+
+
+#############################
+# Raw Data
+
 class SeedData(models.Model):
     seedcode = models.CharField(max_length=200, blank=True, null=True)
     laname = models.CharField(max_length=200, blank=True, null=True)
