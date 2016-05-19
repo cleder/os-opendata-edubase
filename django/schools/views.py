@@ -31,7 +31,6 @@ school_sites = FunctionalSite.objects.filter(sitetheme = 'Education')
 button_text = 'Add to OSM'
 
 def assign_school_to_site(school,site):
-    print school.schoolname
     SchoolSite.objects.create(school=school, site=site)
 
 def get_schools_nearby(geom):
@@ -57,12 +56,8 @@ def stopwords(request):
     count = Counter()
     for school in School.objects.all():
         count.update(set(tokenize(school.schoolname)))
-        print school.cleaned_name
-        print school.types_from_name
     for site in school_sites.all():
         count.update(set(tokenize(site.distname)))
-        print site.cleaned_name
-        print site.types_from_name
     response = json.dumps(count.most_common(1000))
     return HttpResponse(response)
 
@@ -82,8 +77,7 @@ def auto_assign(request):
             if school.cleaned_name_no_type == site.cleaned_name_no_type and len(schools)==1:
                 assign_school_to_site(school,site)
                 continue
-        else:
-            print 'FAIL'
+
 
 
 #class based views
@@ -119,7 +113,7 @@ class AssignPolyToSchool(TemplateView):
         return self.render_to_response(context)
 
     def post(self, request, gid):
-        site = queryset.get(gid=gid)
+        site = self.queryset.get(gid=gid)
         mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
         if 'schools.backends.osm_test.OpenStreetMapTestOAuth' in settings.AUTHENTICATION_BACKENDS:
             test = True
@@ -163,7 +157,8 @@ class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
     def queryset(self):
         includes = FunctionalSiteNearSchool.objects.values_list('gid', flat=True)
         excludes = FunctionalSiteOverlapsOsm.objects.values_list('gid', flat=True)
-        return school_sites.filter(gid__in=includes).exclude(gid__in=excludes)
+        include_only = set(includes)-set(excludes)
+        return school_sites.filter(gid__in=include_only)
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 

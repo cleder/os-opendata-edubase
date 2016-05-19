@@ -165,12 +165,12 @@ def import_osm():
     imppath = os.path.join(PROJECT_DIR, 'data', 'osm')
 
     with fab.lcd(imppath):
-        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1]" {2}/schools.osm '
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1}" {2}/schools.osm '
                '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
                '-overwrite').format(DB_NAME, DB_USER, imppath)
         fab.local(cmd)
         # college
-        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1]" {2}/colleges.osm '
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1}" {2}/colleges.osm '
                '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
                '-append').format(DB_NAME, DB_USER, imppath)
         fab.local(cmd)
