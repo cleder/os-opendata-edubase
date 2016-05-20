@@ -180,6 +180,15 @@ The below image indicates that the school that once existed here was closed:
 TODO
 ----
 
+Docker:
+-------
+
+    docker-machine start dev
+    docker-compose down
+    docker-compose build
+    docker-compose up -d
+    docker info
+    docker-compose logs
 
 
 
