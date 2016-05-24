@@ -1,0 +1,41 @@
+web:
+  restart: always
+  build: ./django
+  expose:
+    - "8000"
+  links:
+    - postgres:postgres
+  volumes:
+    - /usr/src/app
+    - /usr/src/app/static
+  env_file: .env
+  environment:
+    DEBUG: 'true'
+  command: /usr/local/bin/gunicorn osschooldata.wsgi:application -w 2 -b :8000
+
+nginx:
+  restart: always
+  build: ./nginx/
+  ports:
+    - "80:80"
+  volumes:
+    - /www/static
+  volumes_from:
+    - web
+  links:
+    - web:web
+
+data:
+  image: postgres:latest
+  volumes:
+    - pgdata:/var/lib/postgresql/data/
+  command: "true"
+
+postgres:
+  restart: always
+  image: mdillon/postgis:latest
+  ports:
+    - "5432:5432"
+  volumes_from:
+    - data
+

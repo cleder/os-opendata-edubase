@@ -11,7 +11,7 @@ from django.contrib.gis.db.models.functions import Distance as TheDistance
 from django.contrib.auth import logout as auth_logout
 from django.shortcuts import redirect
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic import TemplateView
 from django.views.generic import View
 
@@ -20,6 +20,7 @@ from pygeoif import MultiPolygon, Polygon, Point
 
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
 from .models import School, SchoolSite, Multipolygons
+from .models import FunctionalSiteNearSchool, FunctionalSiteOverlapsOsm
 from .utils import tokenize
 
 import osmoapi
@@ -30,7 +31,6 @@ school_sites = FunctionalSite.objects.filter(sitetheme = 'Education')
 button_text = 'Add to OSM'
 
 def assign_school_to_site(school,site):
-    print school.schoolname
     SchoolSite.objects.create(school=school, site=site)
 
 def get_schools_nearby(geom):
@@ -56,12 +56,8 @@ def stopwords(request):
     count = Counter()
     for school in School.objects.all():
         count.update(set(tokenize(school.schoolname)))
-        print school.cleaned_name
-        print school.types_from_name
     for site in school_sites.all():
         count.update(set(tokenize(site.distname)))
-        print site.cleaned_name
-        print site.types_from_name
     response = json.dumps(count.most_common(1000))
     return HttpResponse(response)
 
@@ -81,20 +77,33 @@ def auto_assign(request):
             if school.cleaned_name_no_type == site.cleaned_name_no_type and len(schools)==1:
                 assign_school_to_site(school,site)
                 continue
-        else:
-            print 'FAIL'
+
 
 
 #class based views
 class AssignPolyToSchool(TemplateView):
     template_name = "assign.html"
 
+    @property
+    def queryset(self):
+        return school_sites
+
+    def get_next_site(self, gid):
+        return self.queryset.filter(gid__gt=gid).first()
+
+    def get_prev_site(self, gid):
+        return self.queryset.filter(gid__lt=gid).last()
+
     def get(self, request, gid):
-        site = school_sites.get(gid=gid)
+        try:
+            site = self.queryset.get(gid=gid)
+        except FunctionalSite.DoesNotExist:
+            url = '/'.join(request.path.split('/')[:-2])
+            return HttpResponseRedirect('{0}/{1}/'.format(url, self.get_next_site(gid).gid))
         schools_nearby = get_schools_nearby(site.geom)
         osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
-        next_site = school_sites.filter(gid__gt=gid).first()
-        prev_site = school_sites.filter(gid__lt=gid).last()
+        next_site = self.get_next_site(gid)
+        prev_site = self.get_prev_site(gid)
         context = {'site': site,
                    'schools_nearby': schools_nearby,
                    'osm_polys': osm_polys,
@@ -104,9 +113,8 @@ class AssignPolyToSchool(TemplateView):
         return self.render_to_response(context)
 
     def post(self, request, gid):
-        site = school_sites.get(gid=gid)
+        site = self.queryset.get(gid=gid)
         mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
-        site = school_sites.get(gid=gid)
         if 'schools.backends.osm_test.OpenStreetMapTestOAuth' in settings.AUTHENTICATION_BACKENDS:
             test = True
         elif 'social.backends.openstreetmap.OpenStreetMapOAuth' in settings.AUTHENTICATION_BACKENDS:
@@ -140,17 +148,17 @@ class AssignPolyToSchool(TemplateView):
             api.diff_upload(change)
             assert api.close_changeset(cs)
         ##### end osmoapi test
-        schools_nearby = get_schools_nearby(site.geom)
-        osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
-        next_site = school_sites.filter(gid__gt=gid).first()
-        prev_site = school_sites.filter(gid__lt=gid).last()
-        context = {'site': site,
-                   'schools_nearby': schools_nearby,
-                   'osm_polys': osm_polys,
-                   'next_site': next_site,
-                   'prev_site': prev_site,
-                   'button_text': button_text}
-        return self.render_to_response(context)
+
+        return self.get(request, gid)
+
+class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
+
+    @property
+    def queryset(self):
+        includes = FunctionalSiteNearSchool.objects.values_list('gid', flat=True)
+        excludes = FunctionalSiteOverlapsOsm.objects.values_list('gid', flat=True)
+        include_only = set(includes)-set(excludes)
+        return school_sites.filter(gid__in=include_only)
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 

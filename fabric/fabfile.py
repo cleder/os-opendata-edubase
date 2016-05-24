@@ -165,11 +165,15 @@ def import_osm():
     imppath = os.path.join(PROJECT_DIR, 'data', 'osm')
 
     with fab.lcd(imppath):
-        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1]" {2}/schools.osm '
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1}" {2}/schools.osm '
                '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
                '-overwrite').format(DB_NAME, DB_USER, imppath)
         fab.local(cmd)
-
+        # college
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1}" {2}/colleges.osm '
+               '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
+               '-append').format(DB_NAME, DB_USER, imppath)
+        fab.local(cmd)
 
 def prepend_headers():
     inpath = os.path.join(PROJECT_DIR, 'data', 'Data', 'CSV')
@@ -241,7 +245,7 @@ def postcode_sql_import():
             Admin_county_code character varying(50),
             Admin_district_code character varying(50),
             Admin_ward_code character varying(50));"
-            '''format(DB_NAME, DB_USER))
+            '''.format(DB_NAME, DB_USER))
     path = os.path.join(PROJECT_DIR, 'data', 'Data', 'processed_csv')
     for f in glob.glob(os.path.join(path, '*.csv')):
         fab.local('''psql -d {0} -U {1} -c
@@ -291,9 +295,9 @@ def edubase_sql_import():
             'SRID=27700;POINT(' || easting || ' ' || northing || ')'), 4326
             )::GEOGRAPHY(Point, 4326) AS location
         INTO edubase FROM edubase_raw;"''').format(DB_NAME, DB_USER)
-    fab.local('''psql -d {0} -U {1} -c
-        "CREATE INDEX edubase_location_geog_idx ON edubase USING GIST(location);"'''
-              .format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c "CREATE INDEX edubase_location_geog_idx
+        ON edubase USING GIST(location);"'''
+        .format(DB_NAME, DB_USER))
     fab.local('''psql -d {0} -U {1} -c
         "ALTER TABLE edubase ADD PRIMARY KEY (urn);"'''.format(DB_NAME, DB_USER))
 
@@ -326,12 +330,12 @@ def seed_sql_import():
                 FROM postcodes INNER JOIN seed_raw
                 ON replace(postcodes.postcode, ' ', '')=replace(seed_raw.postcode, ' ','')
                 INTO seed_data;"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c
-        "CREATE INDEX seed_location_geog_idx ON seed_data USING GIST(location);"'''
-              .format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c
-        "ALTER TABLE seed_data ADD COLUMN id SERIAL PRIMARY KEY;"'''
-              .format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c "CREATE INDEX seed_location_geog_idx
+        ON seed_data USING GIST(location);"'''
+        .format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE seed_data
+        ADD COLUMN id SERIAL PRIMARY KEY;"'''
+        .format(DB_NAME, DB_USER))
 
 
 def combine_edubase_seed():
@@ -433,7 +437,60 @@ def get_osm_schooldata():
     schools_file = open(os.path.join(PROJECT_DIR, 'data', 'osm', 'schools.osm'), 'w')
     schools_file.write(schoolxml)
     schools_file.close()
+    url = 'http://www.overpass-api.de/api/xapi_meta?*[amenity=college][bbox=-6,50,2,61]'
+    # Make data queries to jXAPI
+    collegexml = urllib.urlopen(url).read()
+    college_file = open(os.path.join(PROJECT_DIR, 'data', 'osm', 'colleges.osm'), 'w')
+    college_file.write(collegexml)
+    college_file.close()
 
+def get_sites_near_schools():
+    """
+    Sites nearby a school:
+    all sites correlated with school in ~ 150m
+    -> http://stackoverflow.com/questions/8464666/distance-between-2-points-in-postgis-in-srid-4326-in-metres
+    """
+
+    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS functional_site_near_school;"'.format(DB_NAME, DB_USER))
+    sql_site_near_school = '''
+    SELECT DISTINCT functional_site.gid, school.id as school_id
+    INTO functional_site_near_school
+    FROM functional_site, school
+    WHERE ST_DWithin(functional_site.geom, school.location, 0.0014);
+    '''
+    fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, sql_site_near_school))
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
+         ADD PRIMARY KEY (gid, school_id);"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
+        ADD CONSTRAINT fk_functional_site
+        FOREIGN KEY (gid)
+        REFERENCES functional_site (gid);"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
+        ADD CONSTRAINT fk_school
+        FOREIGN KEY (school_id)
+        REFERENCES school (id);"'''.format(DB_NAME, DB_USER))
+
+
+def get_sites_overlapping_osm():
+    sql_overlapping = '''
+    SELECT DISTINCT functional_site.gid, multipolygons.ogc_fid
+    INTO functional_site_overlaps_osm
+    FROM functional_site, multipolygons
+    WHERE ST_Overlaps(functional_site.geom, multipolygons.wkb_geometry);
+    '''
+    fab.local('''psql -d {0} -U {1} -c "DROP TABLE IF EXISTS
+        functional_site_overlaps_osm;"'''.format(DB_NAME, DB_USER))
+    fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, sql_overlapping))
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_overlaps_osm
+        ADD PRIMARY KEY (gid, ogc_fid);"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_overlaps_osm
+        ADD CONSTRAINT fk_functional_site
+        FOREIGN KEY (gid)
+        REFERENCES functional_site (gid);"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_overlaps_osm
+        ADD CONSTRAINT fk_osm_multipolygon
+        FOREIGN KEY (ogc_fid)
+        REFERENCES multipolygons (ogc_fid);"'''.format(DB_NAME, DB_USER))
 
 def init_db():
     unzip_codepo()
@@ -448,3 +505,5 @@ def init_db():
     combine_edubase_seed()
     import_shp()
     import_osm()
+    get_sites_overlapping_osm()
+    get_sites_near_schools()

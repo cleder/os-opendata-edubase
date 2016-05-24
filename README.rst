@@ -177,14 +177,31 @@ The below image indicates that the school that once existed here was closed:
 
 .. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/assign-osm-no-edudata.png
 
+You can switch between OpenStreetMap
+
+.. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/bg-osm.png
+
+and satellite imagery.
+
+.. image:: https://raw.github.com/cleder/os-opendata-edubase/master/docs/bg-sat.png
+
+
 TODO
 ----
 
-Add OpenStreetMap_ api so that one can easily submit data from this application to
-OpenStreetMap without having to copy and paste.
+Docker:
+-------
+
+    docker-machine start dev
+    docker-compose down
+    docker-compose build
+    docker-compose up -d
+    docker info
+    docker-compose logs
+
 
 
 .. _ordnancesurvey: https://www.ordnancesurvey.co.uk/opendatadownload/products.html
 .. _edubase: http://www.education.gov.uk/edubase/home.xhtml
 .. _seed: http://www.gov.scot/Topics/Statistics/Browse/School-Education/Datasets/contactdetails
-.. _OpenStreetMap: https://www.openstreetmap.org/#map=17/53.23383/-0.53536
+.. _OpenStreetMap: https://www.openstreetmap.org/

@@ -12,3 +12,5 @@
 .*.swp
 .DS_Store
 .*
+settings_local.py
+pip-selfcheck.json
