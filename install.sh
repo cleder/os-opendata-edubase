@@ -1,25 +1,30 @@
 #!/bin/bash
-virtualenv .
-mkdir fabric/data
-mkdir fabric/data/osm
-virtualenv fabric -p python2
-virtualenv django -p python3
-source django/bin/activate
-pip install -r django/requirements.txt
-source fabric/bin/activate
-pip install -r fabric/requirements.txt
+PROJECT_NAME=$1
 
-sudo apt-get install apt-transport-https ca-certificates
-sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-sudo apt-get update
-sudo apt-get purge lxc-docker
-apt-cache policy docker-engine
-sudo apt-get install linux-image-extra-$(uname -r)
-sudo apt-get install apparmor
-sudo apt-get install docker-engine
-sudo pip install docker-compose
-curl -L https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-`uname -s`-`uname -m` > ~/bin/docker-machine && \
-chmod +x ~/bin/docker-machine
+DB_PASSWORD=`cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c 32`
+echo $DB_PASSWORD > DB_PASSWORD.txt
+# Install essential packages from apt-get
+apt-get update -y
+apt-get install -y build-essential libpq-dev ntp libffi-dev
+apt-get install -y postgresql postgresql-contrib
+apt-get install -y postgis postgresql-9.3-postgis-2.1
+apt-get install -y gdal-bin
+apt-get install -y unzip git
+apt-get install -y python python-dev python-virtualenv python-setuptools python-pip
 
-docker-machine create -d virtualbox dev;
-eval "$(docker-machine env dev)"
+echo 'local   osopen_data     osopen     trust' >> /etc/postgresql/9.3/main/pg_hba.conf
+
+service postgresql restart
+
+# fabric
+mkdir $PROJECT_NAME/fabric/data
+mkdir $PROJECT_NAME/fabric/data/osm
+virtualenv venv/fabric -p python2
+source venv/fabric/bin/activate
+pip install -r $PROJECT_NAME/fabric/requirements.txt
+
+# django
+virtualenv venv/django -p python2
+source venv/django/bin/activate
+pip install -r $PROJECT_NAME/django/requirements.txt
+python $PROJECT_NAME/django/manage.py migrate

@@ -166,12 +166,12 @@ def import_osm():
 
     with fab.lcd(imppath):
         cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1}" {2}/schools.osm '
-               '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
+               '-lco COLUMN_TYPES=other_tags=hstore  '
                '-overwrite').format(DB_NAME, DB_USER, imppath)
         fab.local(cmd)
         # college
         cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1}" {2}/colleges.osm '
-               '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
+               '-lco COLUMN_TYPES=other_tags=hstore '
                '-append').format(DB_NAME, DB_USER, imppath)
         fab.local(cmd)
 
@@ -210,7 +210,7 @@ def prepend_headers():
 def create_db():
     with fab.settings(warn_only=True):
         fab.local('sudo -u postgres createuser -P {0}'.format(DB_USER))
-        fab.local('sudo -u postgres createdb -O {0} {1}').format(DB_USER, DB_NAME)
+        fab.local('sudo -u postgres createdb -O {0} {1}'.format(DB_USER, DB_NAME))
         fab.local('sudo -u postgres psql -d {0} -c "CREATE EXTENSION postgis;"'.format(DB_NAME))
         fab.local(
             'sudo -u postgres psql -d {0} -c "GRANT ALL ON geometry_columns TO PUBLIC;"'.format(DB_NAME))
@@ -248,10 +248,10 @@ def postcode_sql_import():
             '''.format(DB_NAME, DB_USER))
     path = os.path.join(PROJECT_DIR, 'data', 'Data', 'processed_csv')
     for f in glob.glob(os.path.join(path, '*.csv')):
-        fab.local('''psql -d {0} -U {1} -c
-                  "\copy postcodes_raw from {2} WITH (FORMAT CSV, HEADER, DELIMITER ',');"'''
+        fab.local('''psql -d {0} -U {1} -c "\copy postcodes_raw
+                  from {2} WITH (FORMAT CSV, HEADER, DELIMITER ',');"'''
                   .format(DB_NAME, DB_USER, f))
-    fab.local('psql -d {0} -U {`} -c "DROP TABLE IF EXISTS postcodes;"'.format(DB_NAME, DB_USER))
+    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS postcodes;"'.format(DB_NAME, DB_USER))
     fab.local('''psql -d {0} -U {1} -c "SELECT
         postcode,
         ST_TRANSFORM(ST_GEOMFROMEWKT('SRID=27700;POINT(' || eastings || ' ' || northings || ')'), 4326)::GEOGRAPHY(Point, 4326) AS location
@@ -294,12 +294,12 @@ def edubase_sql_import():
         ST_TRANSFORM(ST_GEOMFROMEWKT(
             'SRID=27700;POINT(' || easting || ' ' || northing || ')'), 4326
             )::GEOGRAPHY(Point, 4326) AS location
-        INTO edubase FROM edubase_raw;"''').format(DB_NAME, DB_USER)
+        INTO edubase FROM edubase_raw;"'''.format(DB_NAME, DB_USER))
     fab.local('''psql -d {0} -U {1} -c "CREATE INDEX edubase_location_geog_idx
         ON edubase USING GIST(location);"'''
         .format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c
-        "ALTER TABLE edubase ADD PRIMARY KEY (urn);"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE edubase
+        ADD PRIMARY KEY (urn);"'''.format(DB_NAME, DB_USER))
 
 
 def seed_import():
@@ -320,16 +320,18 @@ def seed_sql_import():
     fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS seed_raw;"'.format(DB_NAME, DB_USER))
     cols = ['{0} character varying(200)'.format(f) for f in (clean_header(seed_fields))]
     fab.local('''psql -d {0} -U {1} -c "CREATE TABLE seed_raw (
-              {0});"'''.format(DB_NAME, DB_USER, ', '.join(cols)))
+              {2});"'''.format(DB_NAME, DB_USER, ', '.join(cols)))
     path = os.path.join(PROJECT_DIR, 'data')
     for f in glob.glob(os.path.join(path, 'processed_csv_seeddata*.csv')):
         fab.local('''psql -d {0} -U {1} -c "\copy seed_raw from
                   {0}
                   WITH (FORMAT CSV, HEADER, DELIMITER ',');"'''.format(DB_NAME, DB_USER, f))
+    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS seed_data;"'.format(DB_NAME, DB_USER))
     fab.local('''psql -d {0} -U {1} -c " SELECT seed_raw.*, postcodes.location as location
+                INTO seed_data
                 FROM postcodes INNER JOIN seed_raw
                 ON replace(postcodes.postcode, ' ', '')=replace(seed_raw.postcode, ' ','')
-                INTO seed_data;"'''.format(DB_NAME, DB_USER))
+                ;"'''.format(DB_NAME, DB_USER))
     fab.local('''psql -d {0} -U {1} -c "CREATE INDEX seed_location_geog_idx
         ON seed_data USING GIST(location);"'''
         .format(DB_NAME, DB_USER))
@@ -494,6 +496,7 @@ def get_sites_overlapping_osm():
 
 def init_db():
     unzip_codepo()
+    prepend_headers()
     unzip_os_local()
     get_osm_schooldata()
     create_db()
