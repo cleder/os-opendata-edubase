@@ -38,6 +38,12 @@ def get_schools_nearby(geom):
                                     .annotate(distance=TheDistance('location', geom))
                                     .order_by('distance'))
 
+def is_test():
+    if 'schools.backends.osm_test.OpenStreetMapTestOAuth' in settings.AUTHENTICATION_BACKENDS:
+        return True
+    elif 'social.backends.openstreetmap.OpenStreetMapOAuth' in settings.AUTHENTICATION_BACKENDS:
+        return False
+
 
 # simple views
 def index(request):
@@ -115,10 +121,7 @@ class AssignPolyToSchool(TemplateView):
     def post(self, request, gid):
         site = self.queryset.get(gid=gid)
         mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
-        if 'schools.backends.osm_test.OpenStreetMapTestOAuth' in settings.AUTHENTICATION_BACKENDS:
-            test = True
-        elif 'social.backends.openstreetmap.OpenStreetMapOAuth' in settings.AUTHENTICATION_BACKENDS:
-            test = False
+        test = is_test()
         idx = None
         for v, k in request.POST.items():
             if k == button_text:
