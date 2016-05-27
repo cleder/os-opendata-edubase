@@ -85,7 +85,8 @@ DATABASES = {
          'ENGINE': 'django.contrib.gis.db.backends.postgis',
          'NAME': 'osopen_data',
          'USER': 'osopen',
-         'PORT': '5432'
+         'PORT': '5432',
+         'HOST': 'localhost',
     },
 }
 

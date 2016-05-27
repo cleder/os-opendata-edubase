@@ -9,12 +9,15 @@ and can serve as a blueprint to build your own Application.
 Getting Started
 ----------------
 
-Execute the install script in this folder with `./install.sh`
-I added the line::
+Clone this repository with `git clone https://github.com/cleder/os-opendata-edubase.git`
 
-    local   osopen_data     all                                     trust
+`Download Vagrant<https://www.vagrantup.com/downloads.html>`_ and
+`install it<https://www.vagrantup.com/docs/installation/>`_ on your machine.
 
-to my `pg_hba.conf` to avoid problems with authentication
+Change into the cloned directory and execute `vagrant up`
+
+This will build the virtual machine and set up the database.
+
 
 Data
 ----
@@ -35,7 +38,9 @@ and **`School contact details`** from
 http://www.gov.scot/Topics/Statistics/Browse/School-Education/Datasets/contactdetails
 
 The latter is in excel format and has to be converted into csv before
-using it. The headers must be:
+using it.
+Remove the first 5 Rows so that the column titles ar in the top row.
+The headers must be:
 'SeedCode',
 'LA Name',
 'Centre Type',
@@ -56,9 +61,10 @@ using it. The headers must be:
 'Secondary1',
 'Special1',
 'Denomination'
-so rename them accordingly and remove the columns not included here.
+so rename them accordingly and remove the columns (`6-Fold Urban/rural measure(1)` and following)
+not included here.
 
-Put the data from the above sources into the data directory.
+Put the data from the above sources into the `fabric/data` directory.
 It should have these files in it::
 
     seeddata2015.csv
@@ -121,33 +127,38 @@ It should have these files in it::
     oprvrs_essh_gb.zip
 
 
-Requirements
--------------
-
-python 2.7, ogr, gdal, postgis, shp2pgsql, ogr2ogr are required and must be installed.
-
-
-
 Import
 ------
 
-The import script is written in fabric. Excecute is as `fab init_db`.
+Connect to your vagrant box with `vagrant ssh`.
+
+Inside the box execute the commands::
+
+    cd os-edu-server/fabric/
+    source venv/bin/activate
+    fab init_db
+    exit
+
+
 If all goes well you can now connect to the database and inpect the
-data.
+data. Leave the Box with
 
 
 
 Starting the Django application
 --------------------------------
 
+Connect to your vagrant box with `vagrant ssh`.
+
+
 Activate the virtual environment and start django::
 
-    christian@darkstar:~/devel$ cd os-opendata/
-    christian@darkstar:~/devel/os-opendata$ source bin/activate
-    (os-opendata)christian@darkstar:~/devel/os-opendata$ cd osschooldata/
-    (os-opendata)christian@darkstar:~/devel/os-opendata/osschooldata$ python manage.py migrate
-    (os-opendata)christian@darkstar:~/devel/os-opendata/osschooldata$ python manage.py createsuperuser
-    (os-opendata)christian@darkstar:~/devel/os-opendata/osschooldata$ python manage.py runserver 0.0.0.0:8017
+    vagrant@vagrant-ubuntu-trusty-64:~$ cd os-edu-server/django/
+    vagrant@vagrant-ubuntu-trusty-64:~/os-edu-server/django$ source venv/bin/activate
+    (venv)vagrant@vagrant-ubuntu-trusty-64:~/os-edu-server/django$ python manage.py migrate
+    (venv)vagrant@vagrant-ubuntu-trusty-64:~/os-edu-server/django$ python manage.py createsuperuser
+    (venv)vagrant@vagrant-ubuntu-trusty-64:~/os-edu-server/django$ python manage.py runserver 0.0.0.0:8000
+
 
 Goto `http://localhost:8017/` in your browser.
 
@@ -188,18 +199,6 @@ and satellite imagery.
 
 TODO
 ----
-
-Docker:
--------
-
-    docker-machine start dev
-    docker-compose down
-    docker-compose build
-    docker-compose up -d
-    docker info
-    docker-compose logs
-
-
 
 .. _ordnancesurvey: https://www.ordnancesurvey.co.uk/opendatadownload/products.html
 .. _edubase: http://www.education.gov.uk/edubase/home.xhtml
