@@ -148,10 +148,12 @@ def import_shp():
     # shp2pgsql does not like the directorynames so we rename them
     for d in glob.glob(os.path.join(inpath, 'OSOpenMapLocal (ESRI Shape File) *')):
         src, dest = d, os.path.join(inpath, d[-2:])
-        print src, dest
-        os.rename(src, dest)
-    first = '''shp2pgsql -d -s 27700:4326 -I -W LATIN1 {0} functional_site | psql -d {1} -U {2}'''
-    other = '''shp2pgsql -a -s 27700:4326 -W LATIN1 {0} functional_site | psql -d {1} -U {2}'''
+        try:
+            os.rename(src, dest)
+        except OSError:
+            pass
+    first = '''shp2pgsql -d -s 27700:4326 -I -W LATIN1 {0} functional_site | psql -d {1} -U {2} -h localhost'''
+    other = '''shp2pgsql -a -s 27700:4326 -W LATIN1 {0} functional_site | psql -d {1} -U {2} -h localhost'''
     template = first
     for root, dirnames, filenames in os.walk(inpath):
         for filename in fnmatch.filter(filenames, '*_FunctionalSite.shp'):
@@ -165,13 +167,13 @@ def import_osm():
     imppath = os.path.join(PROJECT_DIR, 'data', 'osm')
 
     with fab.lcd(imppath):
-        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1}" {2}/schools.osm '
-               '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1} host=localhost" {2}/schools.osm '
+               '-lco COLUMN_TYPES=other_tags=hstore  '
                '-overwrite').format(DB_NAME, DB_USER, imppath)
         fab.local(cmd)
         # college
-        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1}" {2}/colleges.osm '
-               '-lco COLUMN_TYPES=other_tags=hstore --config OSM_MAX_TMPFILE_SIZE 1024 '
+        cmd = ('ogr2ogr -f PostgreSQL "PG:dbname={0} user={1} host=localhost" {2}/colleges.osm '
+               '-lco COLUMN_TYPES=other_tags=hstore '
                '-append').format(DB_NAME, DB_USER, imppath)
         fab.local(cmd)
 
@@ -208,9 +210,12 @@ def prepend_headers():
 
 
 def create_db():
+    """
+    This should already have been doe by the install script.
+    """
     with fab.settings(warn_only=True):
         fab.local('sudo -u postgres createuser -P {0}'.format(DB_USER))
-        fab.local('sudo -u postgres createdb -O {0} {1}').format(DB_USER, DB_NAME)
+        fab.local('sudo -u postgres createdb -O {0} {1}'.format(DB_USER, DB_NAME))
         fab.local('sudo -u postgres psql -d {0} -c "CREATE EXTENSION postgis;"'.format(DB_NAME))
         fab.local(
             'sudo -u postgres psql -d {0} -c "GRANT ALL ON geometry_columns TO PUBLIC;"'.format(DB_NAME))
@@ -221,8 +226,8 @@ def create_db():
 
 def ogr2ogr_import_codepoint():
     # XXX this fails for some reason
-    first = '''ogr2ogr -nlt PROMOTE_TO_MULTI -progress -nln codepoint -skipfailures -lco PRECISION=no -f PostgreSQL PG:"dbname='osopen_data' host='localhost' port='5432'  user='osopen' password='osopen' " {0}'''
-    other = '''ogr2ogr -nlt PROMOTE_TO_MULTI -progress -update -append -nln codepoint -skipfailures -lco PRECISION=no -f PostgreSQL PG:"dbname='osopen_data' host='localhost'  port='5432' user='osopen' password='osopen'" {0}'''
+    first = '''ogr2ogr -nlt PROMOTE_TO_MULTI -progress -nln codepoint -skipfailures -lco PRECISION=no -f PostgreSQL PG:"dbname='osopen_data' host='localhost' port='5432'  user='osopen'" {0}'''
+    other = '''ogr2ogr -nlt PROMOTE_TO_MULTI -progress -update -append -nln codepoint -skipfailures -lco PRECISION=no -f PostgreSQL PG:"dbname='osopen_data' host='localhost'  port='5432' user='osopen'" {0}'''
     path = os.path.join(PROJECT_DIR, 'data', 'Data', 'processed_csv')
     template = first
     for f in glob.glob(os.path.join(path, '*.vrt')):
@@ -233,8 +238,8 @@ def ogr2ogr_import_codepoint():
 
 def postcode_sql_import():
     fab.local(
-        'psql -d {0} -U {1} -c "DROP TABLE IF EXISTS postcodes_raw;"'.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "CREATE TABLE postcodes_raw (
+        'psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS postcodes_raw;"'.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "CREATE TABLE postcodes_raw (
             Postcode character varying(10),
             Positional_quality_indicator character varying(50),
             Eastings character varying(10),
@@ -248,18 +253,18 @@ def postcode_sql_import():
             '''.format(DB_NAME, DB_USER))
     path = os.path.join(PROJECT_DIR, 'data', 'Data', 'processed_csv')
     for f in glob.glob(os.path.join(path, '*.csv')):
-        fab.local('''psql -d {0} -U {1} -c
-                  "\copy postcodes_raw from {2} WITH (FORMAT CSV, HEADER, DELIMITER ',');"'''
+        fab.local('''psql -d {0} -U {1} -h localhost -c "\copy postcodes_raw
+                  from {2} WITH (FORMAT CSV, HEADER, DELIMITER ',');"'''
                   .format(DB_NAME, DB_USER, f))
-    fab.local('psql -d {0} -U {`} -c "DROP TABLE IF EXISTS postcodes;"'.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "SELECT
+    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS postcodes;"'.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "SELECT
         postcode,
         ST_TRANSFORM(ST_GEOMFROMEWKT('SRID=27700;POINT(' || eastings || ' ' || northings || ')'), 4326)::GEOGRAPHY(Point, 4326) AS location
         INTO postcodes FROM postcodes_raw;"'''.format(DB_NAME, DB_USER))
     fab.local(
-        'psql -d {0} -U {1} -c "CREATE INDEX postcodes_geog_idx ON postcodes USING GIST(location);"'.format(DB_NAME, DB_USER))
+        'psql -d {0} -U {1} -h localhost -c "CREATE INDEX postcodes_geog_idx ON postcodes USING GIST(location);"'.format(DB_NAME, DB_USER))
     fab.local(
-        'psql -d {0} -U {1} -c "ALTER TABLE postcodes ADD PRIMARY KEY (Postcode);"'.format(DB_NAME, DB_USER))
+        'psql -d {0} -U {1} -h localhost -c "ALTER TABLE postcodes ADD PRIMARY KEY (Postcode);"'.format(DB_NAME, DB_USER))
     #fab.local('psql -d osopen_data -U osopen -c "DROP TABLE postcodes_raw;"')
 
 
@@ -278,28 +283,28 @@ def edubase_import():
 
 
 def edubase_sql_import():
-    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS edubase_raw;"'.format(DB_NAME, DB_USER))
+    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS edubase_raw;"'.format(DB_NAME, DB_USER))
     cols = ['{0} character varying(500)'.format(f) for f in (clean_header(fields))]
-    fab.local('''psql -d {0} -U {1} -c "CREATE TABLE edubase_raw (
+    fab.local('''psql -d {0} -U {1} -h localhost -c "CREATE TABLE edubase_raw (
               {2});"'''.format(DB_NAME, DB_USER, ', '.join(cols)))
     path = os.path.join(PROJECT_DIR, 'data')
     for f in glob.glob(os.path.join(path, 'processed_csv_edubasealldata*.csv')):
-        fab.local('''psql -d {0} -U {1} -c "\copy edubase_raw from
+        fab.local('''psql -d {0} -U {1} -h localhost -c "\copy edubase_raw from
                   {2}
                   WITH (FORMAT CSV, HEADER, ENCODING 'LATIN1', DELIMITER ',');"'''
                   .format(DB_NAME, DB_USER, f))
-    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS edubase;"'.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "SELECT
+    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS edubase;"'.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "SELECT
         edubase_raw.*,
         ST_TRANSFORM(ST_GEOMFROMEWKT(
             'SRID=27700;POINT(' || easting || ' ' || northing || ')'), 4326
             )::GEOGRAPHY(Point, 4326) AS location
-        INTO edubase FROM edubase_raw;"''').format(DB_NAME, DB_USER)
-    fab.local('''psql -d {0} -U {1} -c "CREATE INDEX edubase_location_geog_idx
+        INTO edubase FROM edubase_raw;"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "CREATE INDEX edubase_location_geog_idx
         ON edubase USING GIST(location);"'''
         .format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c
-        "ALTER TABLE edubase ADD PRIMARY KEY (urn);"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE edubase
+        ADD PRIMARY KEY (urn);"'''.format(DB_NAME, DB_USER))
 
 
 def seed_import():
@@ -317,30 +322,32 @@ def seed_import():
 
 
 def seed_sql_import():
-    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS seed_raw;"'.format(DB_NAME, DB_USER))
+    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS seed_raw;"'.format(DB_NAME, DB_USER))
     cols = ['{0} character varying(200)'.format(f) for f in (clean_header(seed_fields))]
-    fab.local('''psql -d {0} -U {1} -c "CREATE TABLE seed_raw (
-              {0});"'''.format(DB_NAME, DB_USER, ', '.join(cols)))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "CREATE TABLE seed_raw (
+              {2});"'''.format(DB_NAME, DB_USER, ', '.join(cols)))
     path = os.path.join(PROJECT_DIR, 'data')
     for f in glob.glob(os.path.join(path, 'processed_csv_seeddata*.csv')):
-        fab.local('''psql -d {0} -U {1} -c "\copy seed_raw from
-                  {0}
+        fab.local('''psql -d {0} -U {1} -h localhost -c "\copy seed_raw from
+                  {2}
                   WITH (FORMAT CSV, HEADER, DELIMITER ',');"'''.format(DB_NAME, DB_USER, f))
-    fab.local('''psql -d {0} -U {1} -c " SELECT seed_raw.*, postcodes.location as location
+    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS seed_data;"'.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -h localhost -c " SELECT seed_raw.*, postcodes.location as location
+                INTO seed_data
                 FROM postcodes INNER JOIN seed_raw
                 ON replace(postcodes.postcode, ' ', '')=replace(seed_raw.postcode, ' ','')
-                INTO seed_data;"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "CREATE INDEX seed_location_geog_idx
+                ;"'''.format(DB_NAME, DB_USER))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "CREATE INDEX seed_location_geog_idx
         ON seed_data USING GIST(location);"'''
         .format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE seed_data
+    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE seed_data
         ADD COLUMN id SERIAL PRIMARY KEY;"'''
         .format(DB_NAME, DB_USER))
 
 
 def combine_edubase_seed():
 
-    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS school;"'.format(DB_NAME, DB_USER))
+    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS school;"'.format(DB_NAME, DB_USER))
     create_sql = """
     CREATE TABLE school
     (
@@ -370,7 +377,7 @@ def combine_edubase_seed():
       (location);
     """
 
-    fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, create_sql))
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, create_sql))
 
     combine_schools_sql = """
     INSERT INTO school (source, uid, local_authority,
@@ -412,7 +419,7 @@ def combine_edubase_seed():
     FROM
       public.edubase
     """
-    fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, combine_schools_sql))
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, combine_schools_sql))
 
 
 def get_osm_schooldata():
@@ -451,21 +458,21 @@ def get_sites_near_schools():
     -> http://stackoverflow.com/questions/8464666/distance-between-2-points-in-postgis-in-srid-4326-in-metres
     """
 
-    fab.local('psql -d {0} -U {1} -c "DROP TABLE IF EXISTS functional_site_near_school;"'.format(DB_NAME, DB_USER))
+    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS functional_site_near_school;"'.format(DB_NAME, DB_USER))
     sql_site_near_school = '''
     SELECT DISTINCT functional_site.gid, school.id as school_id
     INTO functional_site_near_school
     FROM functional_site, school
     WHERE ST_DWithin(functional_site.geom, school.location, 0.0014);
     '''
-    fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, sql_site_near_school))
-    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, sql_site_near_school))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_near_school
          ADD PRIMARY KEY (gid, school_id);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
+    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_near_school
         ADD CONSTRAINT fk_functional_site
         FOREIGN KEY (gid)
         REFERENCES functional_site (gid);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_near_school
+    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_near_school
         ADD CONSTRAINT fk_school
         FOREIGN KEY (school_id)
         REFERENCES school (id);"'''.format(DB_NAME, DB_USER))
@@ -478,25 +485,26 @@ def get_sites_overlapping_osm():
     FROM functional_site, multipolygons
     WHERE ST_Overlaps(functional_site.geom, multipolygons.wkb_geometry);
     '''
-    fab.local('''psql -d {0} -U {1} -c "DROP TABLE IF EXISTS
+    fab.local('''psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS
         functional_site_overlaps_osm;"'''.format(DB_NAME, DB_USER))
-    fab.local('psql -d {0} -U {1} -c "{2}"'.format(DB_NAME, DB_USER, sql_overlapping))
-    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_overlaps_osm
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, sql_overlapping))
+    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_overlaps_osm
         ADD PRIMARY KEY (gid, ogc_fid);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_overlaps_osm
+    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_overlaps_osm
         ADD CONSTRAINT fk_functional_site
         FOREIGN KEY (gid)
         REFERENCES functional_site (gid);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -c "ALTER TABLE functional_site_overlaps_osm
+    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_overlaps_osm
         ADD CONSTRAINT fk_osm_multipolygon
         FOREIGN KEY (ogc_fid)
         REFERENCES multipolygons (ogc_fid);"'''.format(DB_NAME, DB_USER))
 
 def init_db():
     unzip_codepo()
+    prepend_headers()
     unzip_os_local()
     get_osm_schooldata()
-    create_db()
+    #create_db()
     postcode_sql_import()
     edubase_import()
     edubase_sql_import()
