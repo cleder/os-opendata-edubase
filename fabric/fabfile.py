@@ -140,7 +140,8 @@ def unzip_os_local():
     with fab.lcd(inpath):
         for f in glob.glob(os.path.join(inpath, 'opmplc_essh_*.zip')):
             print f
-            fab.local('unzip {0}'.format(f))
+            with fab.settings(warn_only=True):
+                fab.local('unzip {0} *FunctionalSite.*'.format(f))
 
 
 def import_shp():
