@@ -19,13 +19,14 @@ from djgeojson.views import GeoJSONResponseMixin
 from pygeoif import MultiPolygon, Polygon, Point
 
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
-from .models import School, SchoolSite, Multipolygons
+from .models import School, SchoolSite
+from .models import Points, Lines, Multilinestrings, Multipolygons
 from .models import FunctionalSiteNearSchool, FunctionalSiteOverlapsOsm
 from .utils import tokenize
 
 import osmoapi
 
-open_schools = School.objects.filter(status_name__startswith = 'Open')
+open_schools = School.objects.filter(status_name__istartswith = 'open')
 school_sites = FunctionalSite.objects.filter(sitetheme = 'Education')
 
 button_text = 'Add to OSM'
@@ -187,7 +188,7 @@ class SchoolNameGeoJsonView(GeoJSONResponseMixin, View):
         self.gid = gid
         return self.render_to_response(None)
 
-class OsmSchoolGeoJsonView(GeoJSONResponseMixin, View):
+class OsmSchoolPolyGeoJsonView(GeoJSONResponseMixin, View):
 
     geometry_field = 'wkb_geometry'
 
@@ -198,3 +199,44 @@ class OsmSchoolGeoJsonView(GeoJSONResponseMixin, View):
     def get(self, request, gid):
         self.gid = gid
         return self.render_to_response(None)
+
+
+class OsmSchoolLineGeoJsonView(GeoJSONResponseMixin, View):
+
+    geometry_field = 'wkb_geometry'
+
+    def get_queryset(self):
+        site = school_sites.get(gid=self.gid)
+        return Lines.objects.filter(wkb_geometry__intersects=site.geom)
+
+    def get(self, request, gid):
+        self.gid = gid
+        return self.render_to_response(None)
+
+class OsmSchoolMultiLinesGeoJsonView(GeoJSONResponseMixin, View):
+
+    geometry_field = 'wkb_geometry'
+
+    def get_queryset(self):
+        site = school_sites.get(gid=self.gid)
+        return Multilinestrings.objects.filter(wkb_geometry__intersects=site.geom)
+
+    def get(self, request, gid):
+        self.gid = gid
+        return self.render_to_response(None)
+
+
+
+class OsmSchoolPointGeoJsonView(GeoJSONResponseMixin, View):
+
+    geometry_field = 'wkb_geometry'
+    properties = {'name': 'schoolname'}
+
+    def get_queryset(self):
+        site = school_sites.get(gid=self.gid)
+        return Points.objects.filter(wkb_geometry__intersects=site.geom)
+
+    def get(self, request, gid):
+        self.gid = gid
+        return self.render_to_response(None)
+
