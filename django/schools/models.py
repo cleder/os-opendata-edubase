@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 #from django.db import models
+from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import HStoreField
 from django.utils.functional import cached_property
@@ -90,6 +91,16 @@ class Postcodes(models.Model):
     class Meta:
         managed = False
         db_table = 'postcodes'
+
+class ImportLog(models.Model):
+
+    school = models.ForeignKey('School', on_delete=models.PROTECT)
+    site =  models.ForeignKey('FunctionalSite', on_delete=models.PROTECT)
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    created = models.DateTimeField(auto_now_add=True)
+    changeset =  models.IntegerField()
+    change = models.TextField()
+
 
 ####################################
 # Site - school - osm relationships

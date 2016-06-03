@@ -14,7 +14,9 @@ apt-get install -y postgresql postgresql-contrib
 apt-get install -y postgis postgresql-9.3-postgis-2.1
 apt-get install -y gdal-bin
 apt-get install -y unzip git
-apt-get install -y nginx
+apt-get install -y nginx-full
+apt-get install -y libtiff5-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev
+
 apt-get install -y python python-dev python-virtualenv python-setuptools python-pip
 pip install uwsgi
 
