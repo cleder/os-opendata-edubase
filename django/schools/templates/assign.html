@@ -16,6 +16,7 @@
       .user-details { text-align: center; font-size: 16px; font-weight: bold; }
       .leaflet-edit-osm a {font-weight: bold; width: 7em!important;}
       .leaflet-edit-osm a:before {content: "Edit in ";}
+      ul.osm-tags li {display: inline;}
     </style>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
@@ -34,18 +35,40 @@
     {% leaflet_map "main" callback="main_map_init" %}
     </div>
     <div>
-      <div>
-        <h2>Data from Edubase/SEED</h2>
+      <div class="alert alert-dismissible alert-info">
+      The highlighted blue polygon will be <b>ADDED</b> to OpenStreetMap. If a school
+      outline is already shown on the base map behind, then you should
+      manually add the tags (& edubase reference manually) to that object.
+      </div>
+      <div class="jumbotron">
+        {% if import_logs %}
+          <ul>
+          {% for logentry in import_logs %}
+          <li>{{ logentry.user.get_username }} created changeset {{ logentry.changeset }} at {{ logentry.created }} </li>
+          {% endfor %}
+          </ul>
+        {% else %}
+        <h2>Data to be added:</h2>
         <ul>
           {% for school in schools_nearby %}
           <li>
-            <b>{{ school.schoolname }}</b>, {{ school.street }}, {{ school.distance }}
-            <form method="post"> <input type="submit" name="{{ school.id }}" value="{{ button_text }}">
+            {% if school.0.website %}
+              <b><a href="http://{{ school.2 }}">{{ school.0.schoolname }}</a></b> ({{ school.0.distance }})
+            {% else %}
+            <b>{{ school.0.schoolname }}</b> ({{ school.0.distance }})
+            {% endif %}
+            <ul class="osm-tags">
+             {% for item in school.1.items %}
+                <li>{{ item.0 }} = {{ item.1 }} &ndash;</li>
+             {% endfor %}
+            </ul>
+            <form method="post"> <input type="submit" name="{{ school.0.id }}" value="{{ button_text }}">
              {% csrf_token %}
             </form>
             </li>
           {% endfor %}
         </ul>
+        {% endif %}
       </div>
       <div>
         <h2>Openstreetmap Data</h2>

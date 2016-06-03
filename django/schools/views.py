@@ -2,6 +2,7 @@
 from collections import Counter
 import json, random
 from operator import itemgetter
+from urlparse import urlparse
 
 import Levenshtein
 from django.db import connection
@@ -19,7 +20,7 @@ from djgeojson.views import GeoJSONResponseMixin
 from pygeoif import MultiPolygon, Polygon, Point
 
 from .models import Edubase, FunctionalSite, Postcodes, SeedData
-from .models import School, SchoolSite
+from .models import ImportLog, School, SchoolSite
 from .models import Points, Lines, Multilinestrings, Multipolygons
 from .models import FunctionalSiteNearSchool, FunctionalSiteOverlapsOsm
 from .utils import tokenize
@@ -95,6 +96,31 @@ class AssignPolyToSchool(TemplateView):
     def queryset(self):
         return school_sites
 
+    def tags_for_school(self, school):
+        city = school.town or school.locality
+        kwargs = dict(amenity='school', name=school.name)
+        if school.website:
+            kwargs['website'] =  school.website
+        kwargs['ref:{0}'.format(school.source.lower())] = str(school.uid)
+        kwargs['addr:country'] = 'GB'
+        if school.postcode:
+            kwargs['addr:postcode'] = school.postcode
+        if school.street:
+            kwargs['addr:street'] = school.street
+        if city:
+            kwargs['addr:city'] = city
+        if school.phone:
+            kwargs['phone'] = school.phone
+        return kwargs
+
+    def url_for_school(self, school):
+        if school.website:
+            if school.website.startswith('http'):
+                return urlparse(school.website).netloc
+            else:
+                return school.website
+
+
     def get_next_site(self, gid):
         return self.queryset.filter(gid__gt=gid).first()
 
@@ -107,16 +133,23 @@ class AssignPolyToSchool(TemplateView):
         except FunctionalSite.DoesNotExist:
             url = '/'.join(request.path.split('/')[:-2])
             return HttpResponseRedirect('{0}/{1}/'.format(url, self.get_next_site(gid).gid))
+        import_logs = site.importlog_set.all()
         schools_nearby = get_schools_nearby(site.geom)
         osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
         next_site = self.get_next_site(gid)
         prev_site = self.get_prev_site(gid)
+        schools_with_tags = []
+        for school in schools_nearby:
+            schools_with_tags.append([school,
+                                      self.tags_for_school(school),
+                                      self.url_for_school( school)])
         context = {'site': site,
-                   'schools_nearby': schools_nearby,
+                   'schools_nearby': schools_with_tags,
                    'osm_polys': osm_polys,
                    'next_site': next_site,
                    'prev_site': prev_site,
-                   'button_text': button_text}
+                   'button_text': button_text,
+                   'import_logs': import_logs,}
         return self.render_to_response(context)
 
     def post(self, request, gid):
@@ -127,7 +160,6 @@ class AssignPolyToSchool(TemplateView):
         for v, k in request.POST.items():
             if k == button_text:
                 idx = int(v)
-         ###### osmoapi test
         if idx is not None:
             school = open_schools.get(pk=idx)
             access_token = request.user.social_auth.first().access_token
@@ -141,18 +173,14 @@ class AssignPolyToSchool(TemplateView):
             point = Point(school.location.coords)
             change = osmoapi.OsmChange(cs)
             city = school.town or school.locality
-            kwargs = dict(amenity='school', name=school.name)
-            kwargs['website'] = school.website or ''
-            kwargs['ref:{0}'.format(school.source)] = str(school.uid)
-            kwargs['addr:country'] = 'GB'
-            kwargs['addr:postcode'] = school.postcode or ''
-            kwargs['addr:street'] =school.street or ''
-            kwargs['addr:city'] = city or ''
+            kwargs = self.tags_for_school(school)
             change.create_multipolygon(mp, **kwargs)
             api.diff_upload(change)
             assert api.close_changeset(cs)
-        ##### end osmoapi test
-
+            logentry = ImportLog(school=school, site=site,
+                                 user=request.user, changeset=cs.id,
+                                 change = change.to_string())
+            logentry.save()
         return self.get(request, gid)
 
 class AssignPolyToSchoolNoOsm(AssignPolyToSchool):

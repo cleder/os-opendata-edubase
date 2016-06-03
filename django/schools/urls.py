@@ -4,9 +4,9 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
-    url(r'^compute/$', views.auto_assign, name='compute'),
+    #url(r'^compute/$', views.auto_assign, name='compute'),
     url(r'^logout/$', views.logout, name='logout'),
-    url(r'^stopwords/$', views.stopwords, name='stopwords'),
+    #url(r'^stopwords/$', views.stopwords, name='stopwords'),
     url(r'^os-school/(?P<gid>[0-9]+)/$', views.OsSchoolGeoJsonView.as_view(), name='os-school'),
     url(r'^assign/(?P<gid>[0-9]+)/$', views.AssignPolyToSchoolNoOsm.as_view(), name='assign-os-school'),
     url(r'^assign-all/(?P<gid>[0-9]+)/$', views.AssignPolyToSchool.as_view(), name='assign-all'),
