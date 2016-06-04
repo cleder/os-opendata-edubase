@@ -16,7 +16,6 @@
       .user-details { text-align: center; font-size: 16px; font-weight: bold; }
       .leaflet-edit-osm a {font-weight: bold; width: 7em!important;}
       .leaflet-edit-osm a:before {content: "Edit in ";}
-      ul.osm-tags li {display: inline;}
     </style>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
@@ -49,7 +48,7 @@
           </ul>
         {% else %}
         <h2>Data to be added:</h2>
-        <ul>
+        <ul class="breadcrumb">
           {% for school in schools_nearby %}
           <li>
             {% if school.0.website %}
@@ -62,7 +61,8 @@
                 <li>{{ item.0 }} = {{ item.1 }} &ndash;</li>
              {% endfor %}
             </ul>
-            <form method="post"> <input type="submit" name="{{ school.0.id }}" value="{{ button_text }}">
+            <form method="post">
+              <input class="btn btn-primary" type="submit" name="{{ school.0.id }}" value="{{ button_text }}">
              {% csrf_token %}
             </form>
             </li>
@@ -80,15 +80,18 @@
       </div>
     </div>
     <div class="buttons">
-       {% if prev_site %}
-       Previous: <a href="{% url 'assign-os-school' prev_site.gid %}">{{ prev_site.distname}}</a>
+        <ul class="pager">
+         {% if prev_site %}
+           <li class="previous">
+             <a href="{% url 'assign-os-school' prev_site.gid %}">&larr; {{ prev_site.distname}}</a>
+           </li>
+         {% endif %}
+         {% if next_site %}
+          <li class="next">
+            <a href="{% url 'assign-os-school' next_site.gid %}">{{ next_site.distname}} &rarr;</a>
+          </li>
         {% endif %}
-         &nbsp; >>> &nbsp;
-       {% if next_site %}
-       Next: <a href="{% url 'assign-os-school' next_site.gid %}">{{ next_site.distname}}</a>
-        {% endif %}
-
-
+      </ul>
     </div>
     <script type="text/javascript">
         function onEachFeature(feature, layer) {

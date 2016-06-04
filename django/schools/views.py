@@ -120,7 +120,6 @@ class AssignPolyToSchool(TemplateView):
             else:
                 return school.website
 
-
     def get_next_site(self, gid):
         return self.queryset.filter(gid__gt=gid).first()
 
