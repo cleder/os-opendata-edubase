@@ -50,7 +50,7 @@
         </div>
         {% else %}
         <h2>Data to be added:</h2>
-        <ul class="breadcrumb">
+        <ul>
           {% for school in schools_nearby %}
           <li>
             {% if school.0.website %}
@@ -58,9 +58,9 @@
             {% else %}
             <b>{{ school.0.schoolname }}</b> ({{ school.0.distance }})
             {% endif %}
-            <ul class="osm-tags">
+            <ul class="nav nav-pills">
              {% for item in school.1.items %}
-                <li>{{ item.0 }} = {{ item.1 }} &ndash;</li>
+                <li>{{ item.0 }} = {{ item.1 }} </li>
              {% endfor %}
             </ul>
             <form method="post">
