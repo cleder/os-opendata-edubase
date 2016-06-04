@@ -41,11 +41,13 @@
       </div>
       <div class="jumbotron">
         {% if import_logs %}
+        <div class="alert alert-dismissible  alert-success">
           <ul>
           {% for logentry in import_logs %}
           <li>{{ logentry.user.get_username }} created changeset {{ logentry.changeset }} at {{ logentry.created }} </li>
           {% endfor %}
           </ul>
+        </div>
         {% else %}
         <h2>Data to be added:</h2>
         <ul class="breadcrumb">
