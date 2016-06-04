@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
 from django.contrib.auth import logout as auth_logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
@@ -89,7 +90,7 @@ def auto_assign(request):
 
 
 #class based views
-class AssignPolyToSchool(TemplateView):
+class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
     template_name = "assign.html"
 
     @property
