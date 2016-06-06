@@ -87,12 +87,12 @@
         <ul class="pager">
          {% if prev_site %}
            <li class="previous">
-             <a href="{% url 'assign-os-school' prev_site.gid %}">&larr; {{ prev_site.distname}}</a>
+             <a href="{% url route prev_site.gid %}">&larr; {{ prev_site.distname}}</a>
            </li>
          {% endif %}
          {% if next_site %}
           <li class="next">
-            <a href="{% url 'assign-os-school' next_site.gid %}">{{ next_site.distname}} &rarr;</a>
+            <a href="{% url route next_site.gid %}">{{ next_site.distname}} &rarr;</a>
           </li>
         {% endif %}
       </ul>

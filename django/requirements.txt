@@ -1,5 +1,5 @@
 decorator==4.0.9
-Django==1.9.6
+Django==1.9.7
 django-geojson==2.9.0
 django-leaflet==0.18.1
 ecdsa==0.13

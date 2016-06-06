@@ -11,6 +11,7 @@ from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
@@ -128,11 +129,11 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         return self.queryset.filter(gid__lt=gid).last()
 
     def get(self, request, gid):
+        route = request.resolver_match.url_name
         try:
             site = self.queryset.get(gid=gid)
         except FunctionalSite.DoesNotExist:
-            url = '/'.join(request.path.split('/')[:-2])
-            return HttpResponseRedirect('{0}/{1}/'.format(url, self.get_next_site(gid).gid))
+            return HttpResponseRedirect(reverse(route, args=(self.get_next_site(gid).gid,)))
         import_logs = site.importlog_set.all()
         schools_nearby = get_schools_nearby(site.geom)
         osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
@@ -149,7 +150,8 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                    'next_site': next_site,
                    'prev_site': prev_site,
                    'button_text': button_text,
-                   'import_logs': import_logs,}
+                   'import_logs': import_logs,
+                   'route': route,}
         return self.render_to_response(context)
 
     def post(self, request, gid):
