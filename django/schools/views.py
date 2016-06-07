@@ -21,16 +21,16 @@ from django.views.generic import View
 from djgeojson.views import GeoJSONResponseMixin
 from pygeoif import MultiPolygon, Polygon, Point
 
-from .models import Edubase, FunctionalSite, Postcodes, SeedData
+from .models import  EducationSite, Postcodes
 from .models import ImportLog, School, SchoolSite
 from .models import Points, Lines, Multilinestrings, Multipolygons
-from .models import FunctionalSiteNearSchool, FunctionalSiteOverlapsOsm
+from .models import EducationSiteNearSchool, EducationSiteOverlapsOsm
 from .utils import tokenize
 
 import osmoapi
 
 open_schools = School.objects.filter(status_name__istartswith = 'open')
-school_sites = FunctionalSite.objects.filter(sitetheme = 'Education')
+school_sites = EducationSite.objects
 
 button_text = 'Add to OSM'
 
@@ -113,6 +113,9 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
             kwargs['addr:city'] = city
         if school.phone:
             kwargs['phone'] = school.phone
+        kwargs['source:geometry'] = 'os-open'
+        kwargs['source:addr'] = school.source.lower()
+        kwargs['source:name'] = school.source.lower()
         return kwargs
 
     def url_for_school(self, school):
@@ -123,17 +126,17 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                 return school.website
 
     def get_next_site(self, gid):
-        return self.queryset.filter(gid__gt=gid).first()
+        return self.queryset.filter(id__gt=gid).first()
 
     def get_prev_site(self, gid):
-        return self.queryset.filter(gid__lt=gid).last()
+        return self.queryset.filter(id__lt=gid).last()
 
     def get(self, request, gid):
         route = request.resolver_match.url_name
         try:
-            site = self.queryset.get(gid=gid)
-        except FunctionalSite.DoesNotExist:
-            return HttpResponseRedirect(reverse(route, args=(self.get_next_site(gid).gid,)))
+            site = self.queryset.get(pk=gid)
+        except EducationSite.DoesNotExist:
+            return HttpResponseRedirect(reverse(route, args=(self.get_next_site(gid).id,)))
         import_logs = site.importlog_set.all()
         schools_nearby = get_schools_nearby(site.geom)
         osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
@@ -155,7 +158,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         return self.render_to_response(context)
 
     def post(self, request, gid):
-        site = self.queryset.get(gid=gid)
+        site = self.queryset.get(pk=gid)
         mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
         test = is_test()
         idx = None
@@ -189,15 +192,15 @@ class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
 
     @property
     def queryset(self):
-        includes = FunctionalSiteNearSchool.objects.values_list('gid', flat=True)
-        excludes = FunctionalSiteOverlapsOsm.objects.values_list('gid', flat=True)
+        includes = EducationSiteNearSchool.objects.values_list('site_id', flat=True)
+        excludes = EducationSiteOverlapsOsm.objects.values_list('site_id', flat=True)
         include_only = set(includes)-set(excludes)
-        return school_sites.filter(gid__in=include_only)
+        return school_sites.filter(id__in=include_only)
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 
     def get_queryset(self):
-        return school_sites.filter(gid=self.gid)
+        return school_sites.filter(pk=self.gid)
 
     def get(self, request, gid):
         self.gid = gid
@@ -210,7 +213,7 @@ class SchoolNameGeoJsonView(GeoJSONResponseMixin, View):
     properties = ['schoolname']
 
     def get_queryset(self):
-        site = school_sites.get(gid=self.gid)
+        site = school_sites.get(pk=self.gid)
         return get_schools_nearby(site.geom)
 
 
@@ -223,7 +226,7 @@ class OsmSchoolPolyGeoJsonView(GeoJSONResponseMixin, View):
     geometry_field = 'wkb_geometry'
 
     def get_queryset(self):
-        site = school_sites.get(gid=self.gid)
+        site = school_sites.get(pk=self.gid)
         return Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
 
     def get(self, request, gid):
@@ -236,7 +239,7 @@ class OsmSchoolLineGeoJsonView(GeoJSONResponseMixin, View):
     geometry_field = 'wkb_geometry'
 
     def get_queryset(self):
-        site = school_sites.get(gid=self.gid)
+        site = school_sites.get(pk=self.gid)
         return Lines.objects.filter(wkb_geometry__intersects=site.geom)
 
     def get(self, request, gid):
@@ -248,7 +251,7 @@ class OsmSchoolMultiLinesGeoJsonView(GeoJSONResponseMixin, View):
     geometry_field = 'wkb_geometry'
 
     def get_queryset(self):
-        site = school_sites.get(gid=self.gid)
+        site = school_sites.get(pk=self.gid)
         return Multilinestrings.objects.filter(wkb_geometry__intersects=site.geom)
 
     def get(self, request, gid):
@@ -263,7 +266,7 @@ class OsmSchoolPointGeoJsonView(GeoJSONResponseMixin, View):
     properties = {'name': 'schoolname'}
 
     def get_queryset(self):
-        site = school_sites.get(gid=self.gid)
+        site = school_sites.get(pk=self.gid)
         return Points.objects.filter(wkb_geometry__intersects=site.geom)
 
     def get(self, request, gid):

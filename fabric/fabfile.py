@@ -153,15 +153,61 @@ def import_shp():
             os.rename(src, dest)
         except OSError:
             pass
-    first = '''shp2pgsql -d -s 27700:4326 -I -W LATIN1 {0} functional_site | psql -d {1} -U {2} -h localhost'''
-    other = '''shp2pgsql -a -s 27700:4326 -W LATIN1 {0} functional_site | psql -d {1} -U {2} -h localhost'''
-    template = first
+    template = '''shp2pgsql -d -s 27700:4326 -I -W LATIN1 {0} functional_site | psql -d {1} -U {2} -h localhost'''
+
+    create_sql = """
+    DROP TABLE IF EXISTS education_site CASCADE;
+    DROP TABLE IF EXISTS functional_site CASCADE;
+
+    CREATE TABLE education_site
+    (
+      id serial NOT NULL,
+      gid integer NOT NULL,
+      grid_ref character varying(2) NOT NULL,
+      distname character varying(120),
+      sitetheme character varying(21),
+      classifica character varying(90),
+      featcode numeric,
+      geom geometry(MultiPolygon,4326),
+      CONSTRAINT education_site_pkey PRIMARY KEY (id),
+      CONSTRAINT education_site_gid_grid_ref_key UNIQUE (gid, grid_ref)
+    );
+
+    ALTER TABLE education_site
+    OWNER TO osopen;
+
+    CREATE INDEX education_site_geom_gist
+      ON education_site
+      USING gist
+      (geom);
+    """
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, create_sql))
+
+    insert_sql = """
+    INSERT INTO education_site
+    (gid, grid_ref, distname, sitetheme, classifica, featcode, geom)
+    SELECT
+        gid,
+        '{0}' as grid_ref,
+        distname,
+        sitetheme,
+        classifica,
+        featcode,
+        geom
+    FROM functional_site
+    WHERE
+        sitetheme = 'Education';
+    """
+
     for root, dirnames, filenames in os.walk(inpath):
         for filename in fnmatch.filter(filenames, '*_FunctionalSite.shp'):
             with fab.lcd(root):
-                print os.path.join(root, filename)
+                print filename
+                gridref =  filename[:2]
                 fab.local(template.format(filename, DB_NAME, DB_USER))
-            template = other
+                sql = insert_sql.format(gridref)
+                fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, sql))
+
 
 
 def import_osm():
@@ -459,46 +505,74 @@ def get_sites_near_schools():
     -> http://stackoverflow.com/questions/8464666/distance-between-2-points-in-postgis-in-srid-4326-in-metres
     """
 
-    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS functional_site_near_school;"'.format(DB_NAME, DB_USER))
     sql_site_near_school = '''
-    SELECT DISTINCT functional_site.gid, school.id as school_id
-    INTO functional_site_near_school
-    FROM functional_site, school
-    WHERE ST_DWithin(functional_site.geom, school.location, 0.0014);
-    '''
-    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, sql_site_near_school))
-    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_near_school
-         ADD PRIMARY KEY (gid, school_id);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_near_school
-        ADD CONSTRAINT fk_functional_site
-        FOREIGN KEY (gid)
-        REFERENCES functional_site (gid);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_near_school
+    DROP TABLE IF EXISTS education_site_near_school CASCADE;
+
+    SELECT DISTINCT education_site.id as site_id, school.id as school_id
+    INTO education_site_near_school
+    FROM education_site, school
+    WHERE ST_DWithin(education_site.geom, school.location, 0.0014);
+
+    ALTER TABLE education_site_near_school
+    ADD COLUMN id serial PRIMARY KEY;
+
+    ALTER TABLE education_site_near_school
+        ADD UNIQUE (site_id, school_id);
+
+    ALTER TABLE education_site_near_school
+        ADD CONSTRAINT fk_education_site
+        FOREIGN KEY (site_id)
+        REFERENCES education_site (id);
+
+    ALTER TABLE education_site_near_school
         ADD CONSTRAINT fk_school
         FOREIGN KEY (school_id)
-        REFERENCES school (id);"'''.format(DB_NAME, DB_USER))
+        REFERENCES school (id);
+    '''
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, sql_site_near_school))
 
 
 def get_sites_overlapping_osm():
     sql_overlapping = '''
-    SELECT DISTINCT functional_site.gid, multipolygons.ogc_fid
-    INTO functional_site_overlaps_osm
-    FROM functional_site, multipolygons
-    WHERE ST_Overlaps(functional_site.geom, multipolygons.wkb_geometry);
-    '''
-    fab.local('''psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS
-        functional_site_overlaps_osm;"'''.format(DB_NAME, DB_USER))
-    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, sql_overlapping))
-    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_overlaps_osm
-        ADD PRIMARY KEY (gid, ogc_fid);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_overlaps_osm
-        ADD CONSTRAINT fk_functional_site
-        FOREIGN KEY (gid)
-        REFERENCES functional_site (gid);"'''.format(DB_NAME, DB_USER))
-    fab.local('''psql -d {0} -U {1} -h localhost -c "ALTER TABLE functional_site_overlaps_osm
+    DROP TABLE IF EXISTS education_site_overlaps_osm;
+
+    SELECT DISTINCT education_site.id as site_id, multipolygons.ogc_fid
+        INTO education_site_overlaps_osm
+        FROM education_site, multipolygons
+        WHERE ST_Overlaps(education_site.geom, multipolygons.wkb_geometry);
+
+    ALTER TABLE education_site_overlaps_osm
+        ADD COLUMN id serial PRIMARY KEY;
+
+    ALTER TABLE education_site_overlaps_osm
+        ADD UNIQUE (site_id, ogc_fid);
+
+    ALTER TABLE education_site_overlaps_osm
+        ADD CONSTRAINT fk_education_site
+        FOREIGN KEY (site_id)
+        REFERENCES education_site (id);
+
+    ALTER TABLE education_site_overlaps_osm
         ADD CONSTRAINT fk_osm_multipolygon
         FOREIGN KEY (ogc_fid)
-        REFERENCES multipolygons (ogc_fid);"'''.format(DB_NAME, DB_USER))
+        REFERENCES multipolygons (ogc_fid);
+
+    '''
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, sql_overlapping))
+
+def post_import():
+    post_sql = """
+    DROP TABLE IF EXISTS functional_site CASCADE;
+    DROP TABLE IF EXISTS postcodes_raw CASCADE;
+    DROP TABLE IF EXISTS edubase_raw CASCADE;
+    DROP TABLE IF EXISTS seed_raw CASCADE;
+    DROP TABLE IF EXISTS edubase CASCADE;
+    DROP TABLE IF EXISTS seed_data CASCADE;
+    DROP TABLE IF EXISTS functional_site_near_school CASCADE;
+    DROP TABLE IF EXISTS functional_site_overlaps_osm CASCADE;
+    """
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, post_sql))
+    fab.local('psql -d {0} -U {1} -h localhost -c "VACUUM ANALYZE;"'.format(DB_NAME, DB_USER))
 
 def init_db():
     unzip_codepo()
@@ -516,3 +590,4 @@ def init_db():
     import_osm()
     get_sites_overlapping_osm()
     get_sites_near_schools()
+    post_import()

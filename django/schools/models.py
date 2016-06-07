@@ -58,28 +58,45 @@ class School(CleanNameMixIn, models.Model):
     def name(self):
         return self.schoolname
 
-
-class FunctionalSite(CleanNameMixIn, models.Model):
-    gid = models.AutoField(primary_key=True)
-    id = models.CharField(max_length=38, blank=True, null=True)
+class EducationSite(models.Model):
+    gid = models.IntegerField()
+    grid_ref = models.CharField(max_length=2)
     distname = models.CharField(max_length=120, blank=True, null=True)
     sitetheme = models.CharField(max_length=21, blank=True, null=True)
     classifica = models.CharField(max_length=90, blank=True, null=True)
     featcode = models.DecimalField(max_digits=65535, decimal_places=65535, blank=True, null=True)
-    geom = models.GeometryField(blank=True, null=True)
+    geom = models.MultiPolygonField(blank=True, null=True)
 
     class Meta:
         managed = False
-        db_table = 'functional_site'
+        db_table = 'education_site'
+        unique_together = (('gid', 'grid_ref'),)
 
-    @property
-    def name(self):
-        return self.distname
+
+class EducationSiteNearSchool(models.Model):
+    site = models.ForeignKey(EducationSite, models.DO_NOTHING, blank=True, null=True)
+    school = models.ForeignKey('School', models.DO_NOTHING, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'education_site_near_school'
+        unique_together = (('site', 'school'),)
+
+
+class EducationSiteOverlapsOsm(models.Model):
+    site = models.ForeignKey(EducationSite, models.DO_NOTHING, blank=True, null=True)
+    ogc_fid = models.ForeignKey('Multipolygons', models.DO_NOTHING, db_column='ogc_fid', blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'education_site_overlaps_osm'
+        unique_together = (('site', 'ogc_fid'),)
+
 
 
 class SchoolSite(models.Model):
     school = models.ForeignKey('School', blank=False, null=False)
-    site =  models.ForeignKey('FunctionalSite', blank=False, null=False)
+    site =  models.ForeignKey('EducationSite', blank=False, null=False)
 
     class Meta:
         unique_together = ('school', 'site')
@@ -95,150 +112,12 @@ class Postcodes(models.Model):
 class ImportLog(models.Model):
 
     school = models.ForeignKey('School', on_delete=models.PROTECT)
-    site =  models.ForeignKey('FunctionalSite', on_delete=models.PROTECT)
+    site =  models.ForeignKey('EducationSite', on_delete=models.PROTECT)
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     created = models.DateTimeField(auto_now_add=True)
     changeset =  models.IntegerField()
     change = models.TextField()
 
-
-####################################
-# Site - school - osm relationships
-
-class FunctionalSiteNearSchool(models.Model):
-    gid = models.ForeignKey(FunctionalSite, models.DO_NOTHING, db_column='gid')
-    school_id = models.ForeignKey('School', models.DO_NOTHING, db_column='school_id')
-
-    class Meta:
-        managed = False
-        db_table = 'functional_site_near_school'
-        unique_together = (('gid', 'school_id'),)
-
-
-class FunctionalSiteOverlapsOsm(models.Model):
-    gid = models.ForeignKey(FunctionalSite, models.DO_NOTHING, db_column='gid')
-    ogc_fid = models.ForeignKey('Multipolygons', models.DO_NOTHING, db_column='ogc_fid')
-
-    class Meta:
-        managed = False
-        db_table = 'functional_site_overlaps_osm'
-        unique_together = (('gid', 'ogc_fid'),)
-
-
-
-#############################
-# Raw Data
-
-class SeedData(models.Model):
-    seedcode = models.CharField(max_length=200, blank=True, null=True)
-    laname = models.CharField(max_length=200, blank=True, null=True)
-    centretype = models.CharField(max_length=200, blank=True, null=True)
-    schoolname = models.CharField(max_length=200, blank=True, null=True)
-    address1 = models.CharField(max_length=200, blank=True, null=True)
-    address2 = models.CharField(max_length=200, blank=True, null=True)
-    address3 = models.CharField(max_length=200, blank=True, null=True)
-    postcode = models.CharField(max_length=200, blank=True, null=True)
-    email = models.CharField(max_length=200, blank=True, null=True)
-    phone = models.CharField(max_length=200, blank=True, null=True)
-    primary_school = models.CharField(max_length=200, blank=True, null=True)
-    secondary = models.CharField(max_length=200, blank=True, null=True)
-    special = models.CharField(max_length=200, blank=True, null=True)
-    primaryroll = models.CharField(max_length=200, blank=True, null=True)
-    secondaryroll = models.CharField(max_length=200, blank=True, null=True)
-    specialroll = models.CharField(max_length=200, blank=True, null=True)
-    primary1 = models.CharField(max_length=200, blank=True, null=True)
-    secondary1 = models.CharField(max_length=200, blank=True, null=True)
-    special1 = models.CharField(max_length=200, blank=True, null=True)
-    denomination = models.CharField(max_length=200, blank=True, null=True)
-    location = models.GeometryField(geography=True, blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'seed_data'
-
-
-class Edubase(models.Model):
-    urn = models.CharField(primary_key=True, max_length=500)
-    la_code = models.CharField(max_length=500, blank=True, null=True)
-    la_name = models.CharField(max_length=500, blank=True, null=True)
-    establishmentnumber = models.CharField(max_length=500, blank=True, null=True)
-    establishmentname = models.CharField(max_length=500, blank=True, null=True)
-    typeofestablishment_name = models.CharField(max_length=500, blank=True, null=True)
-    establishmentstatus_name = models.CharField(max_length=500, blank=True, null=True)
-    reasonestablishmentopened_name = models.CharField(max_length=500, blank=True, null=True)
-    opendate = models.CharField(max_length=500, blank=True, null=True)
-    reasonestablishmentclosed_name = models.CharField(max_length=500, blank=True, null=True)
-    closedate = models.CharField(max_length=500, blank=True, null=True)
-    phaseofeducation_name = models.CharField(max_length=500, blank=True, null=True)
-    statutorylowage = models.CharField(max_length=500, blank=True, null=True)
-    statutoryhighage = models.CharField(max_length=500, blank=True, null=True)
-    boarders_name = models.CharField(max_length=500, blank=True, null=True)
-    officialsixthform_name = models.CharField(max_length=500, blank=True, null=True)
-    gender_name = models.CharField(max_length=500, blank=True, null=True)
-    religiouscharacter_name = models.CharField(max_length=500, blank=True, null=True)
-    diocese_name = models.CharField(max_length=500, blank=True, null=True)
-    admissionspolicy_name = models.CharField(max_length=500, blank=True, null=True)
-    schoolcapacity = models.CharField(max_length=500, blank=True, null=True)
-    specialclasses_name = models.CharField(max_length=500, blank=True, null=True)
-    censusdate = models.CharField(max_length=500, blank=True, null=True)
-    numberofpupils = models.CharField(max_length=500, blank=True, null=True)
-    numberofboys = models.CharField(max_length=500, blank=True, null=True)
-    numberofgirls = models.CharField(max_length=500, blank=True, null=True)
-    percentagefsm = models.CharField(max_length=500, blank=True, null=True)
-    trustschoolflag_name = models.CharField(max_length=500, blank=True, null=True)
-    trusts_name = models.CharField(max_length=500, blank=True, null=True)
-    schoolsponsorflag_name = models.CharField(max_length=500, blank=True, null=True)
-    schoolsponsors_name = models.CharField(max_length=500, blank=True, null=True)
-    federationflag_name = models.CharField(max_length=500, blank=True, null=True)
-    federations_name = models.CharField(max_length=500, blank=True, null=True)
-    ukprn = models.CharField(max_length=500, blank=True, null=True)
-    feheidentifier = models.CharField(max_length=500, blank=True, null=True)
-    furthereducationtype_name = models.CharField(max_length=500, blank=True, null=True)
-    ofstedlastinsp = models.CharField(max_length=500, blank=True, null=True)
-    ofstedspecialmeasures_name = models.CharField(max_length=500, blank=True, null=True)
-    lastchangeddate = models.CharField(max_length=500, blank=True, null=True)
-    street = models.CharField(max_length=500, blank=True, null=True)
-    locality = models.CharField(max_length=500, blank=True, null=True)
-    address3 = models.CharField(max_length=500, blank=True, null=True)
-    town = models.CharField(max_length=500, blank=True, null=True)
-    county_name = models.CharField(max_length=500, blank=True, null=True)
-    postcode = models.CharField(max_length=500, blank=True, null=True)
-    schoolwebsite = models.CharField(max_length=500, blank=True, null=True)
-    telephonenum = models.CharField(max_length=500, blank=True, null=True)
-    headtitle_name = models.CharField(max_length=500, blank=True, null=True)
-    headfirstname = models.CharField(max_length=500, blank=True, null=True)
-    headlastname = models.CharField(max_length=500, blank=True, null=True)
-    headhonours = models.CharField(max_length=500, blank=True, null=True)
-    headpreferredjobtitle = models.CharField(max_length=500, blank=True, null=True)
-    teenmoth_name = models.CharField(max_length=500, blank=True, null=True)
-    teenmothplaces = models.CharField(max_length=500, blank=True, null=True)
-    ccf_name = models.CharField(max_length=500, blank=True, null=True)
-    senpru_name = models.CharField(max_length=500, blank=True, null=True)
-    ebd_name = models.CharField(max_length=500, blank=True, null=True)
-    ftprov_name = models.CharField(max_length=500, blank=True, null=True)
-    edbyother_name = models.CharField(max_length=500, blank=True, null=True)
-    section41approved_name = models.CharField(max_length=500, blank=True, null=True)
-    sen1_name = models.CharField(max_length=500, blank=True, null=True)
-    sen2_name = models.CharField(max_length=500, blank=True, null=True)
-    sen3_name = models.CharField(max_length=500, blank=True, null=True)
-    gor_name = models.CharField(max_length=500, blank=True, null=True)
-    administrativeward_name = models.CharField(max_length=500, blank=True, null=True)
-    parliamentaryconstituency_name = models.CharField(max_length=500, blank=True, null=True)
-    urbanrural_name = models.CharField(max_length=500, blank=True, null=True)
-    gsslacode_name = models.CharField(max_length=500, blank=True, null=True)
-    easting = models.CharField(max_length=500, blank=True, null=True)
-    northing = models.CharField(max_length=500, blank=True, null=True)
-    msoa_name = models.CharField(max_length=500, blank=True, null=True)
-    lsoa_name = models.CharField(max_length=500, blank=True, null=True)
-    boardingestablishment_name = models.CharField(max_length=500, blank=True, null=True)
-    previousla_code = models.CharField(max_length=500, blank=True, null=True)
-    previousla_name = models.CharField(max_length=500, blank=True, null=True)
-    previousestablishmentnumber = models.CharField(max_length=500, blank=True, null=True)
-    location = models.GeometryField(geography=True, blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'edubase'
 
 ###############################################################
 # OpenStreetMap
