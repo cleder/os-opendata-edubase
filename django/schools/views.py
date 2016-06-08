@@ -51,7 +51,7 @@ def is_test():
 
 # simple views
 def index(request):
-    site_ids = school_sites.values_list('gid', flat=True)
+    site_ids = school_sites.values_list('id', flat=True)
     context = {'start_site': random.choice(site_ids)}
     return render(request, 'home.html', context=context)
 
@@ -92,6 +92,7 @@ def auto_assign(request):
 
 #class based views
 class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
+
     template_name = "assign.html"
 
     @property
@@ -137,6 +138,16 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
             site = self.queryset.get(pk=gid)
         except EducationSite.DoesNotExist:
             return HttpResponseRedirect(reverse(route, args=(self.get_next_site(gid).id,)))
+        if request.method == 'POST':
+            x = site.geom.centroid.x
+            y = site.geom.centroid.y
+            if is_test():
+                url = 'http://api06.dev.openstreetmap.org/edit?#map=18/{0}/{1}'.format(y,x)
+            else:
+                url = 'http://www.openstreetmap.org/edit?#map=18/{0}/{1}'.format(y,x)
+            inject = 'window.open("{0}");'.format(url)
+        else:
+            inject = ''
         import_logs = site.importlog_set.all()
         schools_nearby = get_schools_nearby(site.geom)
         osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
@@ -154,7 +165,8 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                    'prev_site': prev_site,
                    'button_text': button_text,
                    'import_logs': import_logs,
-                   'route': route,}
+                   'route': route,
+                   'inject_js': inject,}
         return self.render_to_response(context)
 
     def post(self, request, gid):

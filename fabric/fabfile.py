@@ -464,7 +464,7 @@ def combine_edubase_seed():
       edubase.schoolwebsite,
       edubase.location::geometry
     FROM
-      public.edubase
+      public.edubase;
     """
     fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, combine_schools_sql))
 

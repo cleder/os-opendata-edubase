@@ -43,6 +43,9 @@
       </div>
       <div class="jumbotron">
         {% if import_logs %}
+        <script type="text/javascript">
+        {{ inject_js|safe }}
+        </script>
         <div class="alert alert-dismissible  alert-success">
           <ul>
           {% for logentry in import_logs %}
