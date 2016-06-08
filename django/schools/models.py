@@ -72,6 +72,10 @@ class EducationSite(CleanNameMixIn, models.Model):
         db_table = 'education_site'
         unique_together = (('gid', 'grid_ref'),)
 
+    @property
+    def name(self):
+        return self.distname
+
 
 class EducationSiteNearSchool(models.Model):
     site = models.ForeignKey(EducationSite, models.DO_NOTHING, blank=True, null=True)
