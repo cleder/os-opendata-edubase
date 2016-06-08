@@ -394,7 +394,7 @@ def seed_sql_import():
 
 def combine_edubase_seed():
 
-    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS school;"'.format(DB_NAME, DB_USER))
+    fab.local('psql -d {0} -U {1} -h localhost -c "DROP TABLE IF EXISTS school CASCADE;"'.format(DB_NAME, DB_USER))
     create_sql = """
     CREATE TABLE school
     (
