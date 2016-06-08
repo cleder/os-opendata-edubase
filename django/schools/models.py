@@ -58,7 +58,7 @@ class School(CleanNameMixIn, models.Model):
     def name(self):
         return self.schoolname
 
-class EducationSite(models.Model):
+class EducationSite(CleanNameMixIn, models.Model):
     gid = models.IntegerField()
     grid_ref = models.CharField(max_length=2)
     distname = models.CharField(max_length=120, blank=True, null=True)

@@ -179,6 +179,10 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
             change = osmoapi.OsmChange(cs)
             city = school.town or school.locality
             kwargs = self.tags_for_school(school)
+            if (site.cleaned_name_no_type and
+                school.site.cleaned_name_no_type and
+                site.cleaned_name_no_type != school.cleaned_name_no_type):
+                kwargs['alt_name'] = site.distname
             change.create_multipolygon(mp, **kwargs)
             api.diff_upload(change)
             assert api.close_changeset(cs)
