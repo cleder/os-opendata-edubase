@@ -114,7 +114,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
             kwargs['addr:city'] = city
         if school.phone:
             kwargs['phone'] = school.phone
-        kwargs['source:geometry'] = 'os-open'
+        kwargs['source:geometry'] = 'OS Open Map Local'
         kwargs['source:addr'] = school.source.lower()
         kwargs['source:name'] = school.source.lower()
         return kwargs
@@ -150,7 +150,10 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
             inject = ''
         import_logs = site.importlog_set.all()
         schools_nearby = get_schools_nearby(site.geom)
-        osm_polys = Multipolygons.objects.filter(wkb_geometry__intersects=site.geom)
+        osm_polys = list(Multipolygons.objects.filter(wkb_geometry__intersects=site.geom).all())
+        osm_mls = list(Multilinestrings.objects.filter(wkb_geometry__intersects=site.geom).all())
+        osm_ls = list(Lines.objects.filter(wkb_geometry__intersects=site.geom).all())
+        osm_pts = list(Points.objects.filter(wkb_geometry__intersects=site.geom).all())
         next_site = self.get_next_site(gid)
         prev_site = self.get_prev_site(gid)
         schools_with_tags = []
@@ -160,7 +163,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                                       self.url_for_school( school)])
         context = {'site': site,
                    'schools_nearby': schools_with_tags,
-                   'osm_polys': osm_polys,
+                   'osm_polys': osm_polys + osm_mls + osm_ls + osm_pts,
                    'next_site': next_site,
                    'prev_site': prev_site,
                    'button_text': button_text,
@@ -283,9 +286,9 @@ class OsmSchoolPointGeoJsonView(GeoJSONResponseMixin, View):
 
     def get_queryset(self):
         site = school_sites.get(pk=self.gid)
+        #return Points.objects.filter(wkb_geometry__distance_lte=(site.geom, Distance(m=25)))
         return Points.objects.filter(wkb_geometry__intersects=site.geom)
 
     def get(self, request, gid):
         self.gid = gid
         return self.render_to_response(None)
-
