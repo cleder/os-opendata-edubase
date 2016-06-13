@@ -10,6 +10,7 @@ ipython-genutils==0.1.0
 paramiko==1.16.0
 path.py==8.1.2
 pexpect==4.0.1
+phonenumberslite==7.4.2
 pickleshare==0.6
 psycopg2==2.6.1
 ptyprocess==0.5.1

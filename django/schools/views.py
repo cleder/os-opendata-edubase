@@ -19,6 +19,7 @@ from django.views.generic import TemplateView
 from django.views.generic import View
 
 from djgeojson.views import GeoJSONResponseMixin
+import phonenumbers
 from pygeoif import MultiPolygon, Polygon, Point
 
 from .models import  EducationSite, Postcodes
@@ -113,7 +114,8 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         if city:
             kwargs['addr:city'] = city
         if school.phone:
-            kwargs['phone'] = school.phone
+            pn = phonenumbers.parse(school.phone, 'GB')
+            kwargs['phone'] = phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164)
         kwargs['source:geometry'] = 'OS Open Map Local'
         kwargs['source:addr'] = school.source.lower()
         kwargs['source:name'] = school.source.lower()
