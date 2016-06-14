@@ -2,6 +2,7 @@
 from collections import Counter
 import json, random
 from operator import itemgetter
+import urllib
 from urlparse import urlparse
 
 import Levenshtein
@@ -9,6 +10,7 @@ from django.db import connection
 from django.conf import settings
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
+from django.contrib.gis import geos
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.urlresolvers import reverse
@@ -98,7 +100,13 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
 
     @property
     def queryset(self):
-        return school_sites
+        if self.location:
+            point = geos.Point(self.location['lng'], self.location['lat'])
+            return (school_sites.filter(geom__distance_lte=(point, Distance(mi=10)))
+                                    .annotate(distance=TheDistance('geom', point))
+                                    .order_by('id'))
+        else:
+            return school_sites
 
     def tags_for_school(self, school):
         city = school.town or school.locality
@@ -134,12 +142,24 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
     def get_prev_site(self, gid):
         return self.queryset.filter(id__lt=gid).last()
 
+    def get_location_coockie(self, request):
+        lc = request.COOKIES.get('Location')
+        if lc:
+            self.location = json.loads(urllib.unquote(lc))
+        else:
+            self.location = None
+        return self.location
+
     def get(self, request, gid):
+        self.get_location_coockie(request)
         route = request.resolver_match.url_name
         try:
             site = self.queryset.get(pk=gid)
         except EducationSite.DoesNotExist:
-            return HttpResponseRedirect(reverse(route, args=(self.get_next_site(gid).id,)))
+            nextsite = self.get_next_site(gid)
+            if nextsite  is None:
+                nextsite = self.get_prev_site(gid)
+            return HttpResponseRedirect(reverse(route, args=(nextsite.id,)))
         if request.method == 'POST':
             x = site.geom.centroid.x
             y = site.geom.centroid.y
@@ -216,7 +236,14 @@ class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
         includes = EducationSiteNearSchool.objects.values_list('site_id', flat=True)
         excludes = EducationSiteOverlapsOsm.objects.values_list('site_id', flat=True)
         include_only = set(includes)-set(excludes)
-        return school_sites.filter(id__in=include_only)
+        if self.location:
+            point = geos.Point(self.location['lng'], self.location['lat'])
+            return (school_sites.filter(geom__distance_lte=(point, Distance(mi=10)))
+                                .filter(id__in=include_only)
+                                .annotate(distance=TheDistance('geom', point))
+                                .order_by('id'))
+        else:
+            return school_sites.filter(id__in=include_only)
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 

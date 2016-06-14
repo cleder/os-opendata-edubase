@@ -2,6 +2,7 @@
 {% load leaflet_tags %}
 <html>
   <head>
+    {% load staticfiles %}
     <title>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</title>
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css" rel="stylesheet">
@@ -20,6 +21,7 @@
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
     {% leaflet_js %}
     {% leaflet_css %}
+    <script src="{% static 'js.cookie-2.1.2.min.js' %}"></script>
   </head>
   <body>
     <a class="github-fork-ribbon" href="https://github.com/cleder/os-opendata-edubase" title="Fork me on GitHub">Fork me on GitHub</a>
@@ -52,14 +54,35 @@
       </div>
       {% endif %}
     </div>
-    <div>
+    <div style="padding: 0 3%;">
     {% leaflet_map "main" callback="main_map_init" %}
     </div>
     <script type="text/javascript">
+
         function main_map_init (map, options) {
             // set up the map
+              {% if user.is_authenticated %}
+              var marker;
+              function onMapClick(e) {
+                if (marker != undefined) {
+                  map.removeLayer(marker);
+                };
+                Cookies.set('Location', { lat: e.latlng.lat, lng: e.latlng.lng });
+                marker = new L.circle([e.latlng.lat, e.latlng.lng], 16093, {
+                    color: 'red',
+                    fillColor: '#f03',
+                    fillOpacity: 0.3
+                });
+                map.addLayer(marker);
+              };
+              {% else %}
+              function onMapClick(e) {
+                alert("You clicked the map at " + e.latlng + ". Sign in to map this area.");
+              };
+              {% endif %}
             // start the map in England
             map.setView(new L.LatLng(53.0, 0.79),8);
+            map.on('click', onMapClick);
         }
     </script>
   </body>
