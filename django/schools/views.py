@@ -195,6 +195,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         return self.render_to_response(context)
 
     def post(self, request, gid):
+        self.get_location_coockie(request)
         site = self.queryset.get(pk=gid)
         mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
         test = is_test()
@@ -241,7 +242,7 @@ class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
             return (school_sites.filter(geom__distance_lte=(point, Distance(mi=10)))
                                 .filter(id__in=include_only)
                                 .annotate(distance=TheDistance('geom', point))
-                                .order_by('id'))
+                                .order_by('distance'))
         else:
             return school_sites.filter(id__in=include_only)
 

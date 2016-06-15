@@ -58,10 +58,9 @@
     {% leaflet_map "main" callback="main_map_init" %}
     </div>
     <script type="text/javascript">
-
         function main_map_init (map, options) {
             // set up the map
-              {% if user.is_authenticated %}
+
               var marker;
               function onMapClick(e) {
                 if (marker != undefined) {
@@ -75,15 +74,23 @@
                 });
                 map.addLayer(marker);
               };
-              {% else %}
-              function onMapClick(e) {
-                alert("You clicked the map at " + e.latlng + ". Sign in to map this area.");
-              };
-              {% endif %}
-            // start the map in England
-            map.setView(new L.LatLng(53.0, 0.79),8);
+
+            function onLocationFound(e) {
+               onMapClick(e);
+            };
+            function onLocationError(e) {
+              alert(e.message);
+              map.setView(new L.LatLng(53.0, 0.79),8);
+            };
+            map.on('locationfound', onLocationFound);
+            map.on('locationerror', onLocationError);
+            // start the map at users position
+            map.locate({setView: true, maxZoom: 10});
+
+            //
             map.on('click', onMapClick);
-        }
+        };
+
     </script>
   </body>
 </html>
