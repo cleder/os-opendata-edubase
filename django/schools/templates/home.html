@@ -57,11 +57,21 @@
     <div style="padding: 0 3%;">
     {% leaflet_map "main" callback="main_map_init" %}
     </div>
+    <div class="buttons">
+      <button type="button" class="btn btn-secondary"  onclick="clearLoaction()">Clear Location</button>
+    </div>
     <script type="text/javascript">
+        var myMap;
+        var marker;
+        function clearLoaction() {
+                Cookies.remove('Location');
+                myMap.removeLayer(marker)
+              };
+
         function main_map_init (map, options) {
             // set up the map
 
-              var marker;
+
               function onMapClick(e) {
                 if (marker != undefined) {
                   map.removeLayer(marker);
@@ -89,6 +99,7 @@
 
             //
             map.on('click', onMapClick);
+            myMap = map;
         };
 
     </script>
