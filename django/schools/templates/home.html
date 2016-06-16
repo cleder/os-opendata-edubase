@@ -95,9 +95,19 @@
             map.on('locationfound', onLocationFound);
             map.on('locationerror', onLocationError);
             // start the map at users position
-            map.locate({setView: true, maxZoom: 10});
+            if (Cookies.get('Location') == undefined) {
+              map.locate({setView: true, maxZoom: 10});
+            } else {
+              latlng = Cookies.getJSON('Location');
+              map.setView(new L.LatLng(latlng.lat, latlng.lng),8);
+              marker = new L.circle([latlng.lat, latlng.lng], 16093, {
+                    color: 'red',
+                    fillColor: '#f03',
+                    fillOpacity: 0.3
+                });
+                map.addLayer(marker);
+            };
 
-            //
             map.on('click', onMapClick);
             myMap = map;
         };
