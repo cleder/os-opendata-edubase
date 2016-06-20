@@ -37,6 +37,13 @@ school_sites = EducationSite.objects
 
 button_text = 'Add to OSM'
 
+def get_location_coockie(request):
+    location = None
+    lc = request.COOKIES.get('Location')
+    if lc:
+        location = json.loads(urllib.unquote(lc))
+    return location
+
 def assign_school_to_site(school,site):
     SchoolSite.objects.create(school=school, site=site)
 
@@ -142,16 +149,10 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
     def get_prev_site(self, gid):
         return self.queryset.filter(id__lt=gid).last()
 
-    def get_location_coockie(self, request):
-        lc = request.COOKIES.get('Location')
-        if lc:
-            self.location = json.loads(urllib.unquote(lc))
-        else:
-            self.location = None
-        return self.location
+
 
     def get(self, request, gid):
-        self.get_location_coockie(request)
+        self.location = get_location_coockie(request)
         route = request.resolver_match.url_name
         try:
             site = self.queryset.get(pk=gid)
@@ -195,7 +196,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         return self.render_to_response(context)
 
     def post(self, request, gid):
-        self.get_location_coockie(request)
+        self.location = get_location_coockie(request)
         site = self.queryset.get(pk=gid)
         mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
         test = is_test()
