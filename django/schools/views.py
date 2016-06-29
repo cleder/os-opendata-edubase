@@ -8,13 +8,13 @@ from urlparse import urlparse
 import Levenshtein
 from django.db import connection
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.db.models.functions import Distance as TheDistance
 from django.contrib.gis import geos
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.urlresolvers import reverse
-from django.shortcuts import redirect
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic import TemplateView
@@ -58,6 +58,13 @@ def is_test():
     elif 'social.backends.openstreetmap.OpenStreetMapOAuth' in settings.AUTHENTICATION_BACKENDS:
         return False
 
+def url_for_school(school):
+    if school.website:
+        if school.website.startswith('http'):
+            return urlparse(school.website).netloc
+        else:
+            return school.website
+
 
 # simple views
 def index(request):
@@ -69,7 +76,7 @@ def index(request):
 def logout(request):
     """Logs out user"""
     auth_logout(request)
-    return redirect('/')
+    return HttpResponseRedirect('/')
 
 
 def stopwords(request):
@@ -98,28 +105,38 @@ def auto_assign(request):
                 assign_school_to_site(school,site)
                 continue
 
-
+def start_at_location(request):
+    location = get_location_coockie(request)
+    if location:
+        point = geos.Point(location['lng'], location['lat'])
+        start_school = (school_sites.filter(geom__distance_lte=(point, Distance(mi=1)))
+                                    .annotate(distance=TheDistance('geom', point))
+                                    .order_by('distance')).first()
+        if not start_school:
+            msg = 'There are no schools in a one mile radius from the location you chose!'
+            messages.info(request, msg)
+            return HttpResponseRedirect('/')
+        else:
+            return HttpResponseRedirect(reverse('assign-around', args=(start_school.id,)))
+    else:
+        msg = 'Please add the location around which you want to map by clicking on the map!'
+        messages.info(request, msg)
+        return HttpResponseRedirect('/')
 
 #class based views
 class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
 
-    template_name = "assign.html"
+    template_name = 'assign.html'
 
     @property
     def queryset(self):
-        if self.location:
-            point = geos.Point(self.location['lng'], self.location['lat'])
-            return (school_sites.filter(geom__distance_lte=(point, Distance(mi=10)))
-                                    .annotate(distance=TheDistance('geom', point))
-                                    .order_by('id'))
-        else:
-            return school_sites
+        return school_sites
 
     def tags_for_school(self, school):
         city = school.town or school.locality
         kwargs = dict(amenity='school', name=school.name)
         if school.website:
-            kwargs['website'] =  school.website
+            kwargs['website'] =  url_for_school(school)
         kwargs['ref:{0}'.format(school.source.lower())] = str(school.uid)
         kwargs['addr:country'] = 'GB'
         if school.postcode:
@@ -136,20 +153,12 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         kwargs['source:name'] = school.source.lower()
         return kwargs
 
-    def url_for_school(self, school):
-        if school.website:
-            if school.website.startswith('http'):
-                return urlparse(school.website).netloc
-            else:
-                return school.website
 
     def get_next_site(self, gid):
         return self.queryset.filter(id__gt=gid).first()
 
     def get_prev_site(self, gid):
         return self.queryset.filter(id__lt=gid).last()
-
-
 
     def get(self, request, gid):
         self.location = get_location_coockie(request)
@@ -183,7 +192,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         for school in schools_nearby:
             schools_with_tags.append([school,
                                       self.tags_for_school(school),
-                                      self.url_for_school( school)])
+                                      url_for_school( school)])
         context = {'site': site,
                    'schools_nearby': schools_with_tags,
                    'osm_polys': osm_polys + osm_mls + osm_ls + osm_pts,
@@ -231,6 +240,36 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
             logentry.save()
         return self.get(request, gid)
 
+
+class AssignPolyToSchoolAround(AssignPolyToSchool):
+
+    @property
+    def queryset(self):
+        point = geos.Point(self.location['lng'], self.location['lat'])
+        return (school_sites.filter(geom__distance_lte=(point, Distance(mi=10)))
+                                .annotate(distance=TheDistance('geom', point))
+                                .order_by('distance'))
+
+    def get_next_site(self, gid):
+        is_next = False
+        next_site = None
+        for site in self.queryset:
+            next_site = site
+            if is_next:
+                break
+            if site.id == int(gid):
+                is_next = True
+        return next_site
+
+    def get_prev_site(self, gid):
+        prev_site = None
+        for site in self.queryset:
+            if site.id == int(gid):
+                break
+            prev_site = site
+        return prev_site
+
+
 class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
 
     @property
@@ -238,14 +277,7 @@ class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
         includes = EducationSiteNearSchool.objects.values_list('site_id', flat=True)
         excludes = EducationSiteOverlapsOsm.objects.values_list('site_id', flat=True)
         include_only = set(includes)-set(excludes)
-        if self.location:
-            point = geos.Point(self.location['lng'], self.location['lat'])
-            return (school_sites.filter(geom__distance_lte=(point, Distance(mi=10)))
-                                .filter(id__in=include_only)
-                                .annotate(distance=TheDistance('geom', point))
-                                .order_by('distance'))
-        else:
-            return school_sites.filter(id__in=include_only)
+        return school_sites.filter(id__in=include_only)
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 

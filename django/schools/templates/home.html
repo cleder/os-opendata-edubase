@@ -27,6 +27,14 @@
     <a class="github-fork-ribbon" href="https://github.com/cleder/os-opendata-edubase" title="Fork me on GitHub">Fork me on GitHub</a>
     <h1>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</h1>
 
+
+    {% for message in messages %}
+    <div class="alert alert-dismissible alert-{{ message.tags }}">
+    {{ message }}
+    </div>
+    {% endfor %}
+
+
     <div class="buttons">
       {% if user.is_authenticated %}
         <div class="user-details">
