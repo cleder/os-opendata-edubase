@@ -123,6 +123,18 @@ def start_at_location(request):
         messages.info(request, msg)
         return HttpResponseRedirect('/')
 
+def start_all_at_random(request):
+    site_id = random.choice(school_sites.values_list('id', flat=True))
+    return HttpResponseRedirect(reverse('assign-all', args=([site_id, ])))
+
+def start_noosm_at_random(request):
+    includes = EducationSiteNearSchool.objects.values_list('site_id', flat=True)
+    excludes = EducationSiteOverlapsOsm.objects.values_list('site_id', flat=True)
+    include_only = set(includes)-set(excludes)
+    site_id = random.choice(school_sites.filter(id__in=include_only).values_list('id', flat=True))
+    return HttpResponseRedirect(reverse('assign-os-school', args=([site_id, ])))
+
+
 #class based views
 class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
 
@@ -297,7 +309,6 @@ class SchoolNameGeoJsonView(GeoJSONResponseMixin, View):
     def get_queryset(self):
         site = school_sites.get(pk=self.gid)
         return get_schools_nearby(site.geom)
-
 
     def get(self, request, gid):
         self.gid = gid
