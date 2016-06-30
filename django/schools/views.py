@@ -68,9 +68,7 @@ def url_for_school(school):
 
 # simple views
 def index(request):
-    site_ids = school_sites.values_list('id', flat=True)
-    context = {'start_site': random.choice(site_ids)}
-    return render(request, 'home.html', context=context)
+    return render(request, 'home.html')
 
 
 def logout(request):
