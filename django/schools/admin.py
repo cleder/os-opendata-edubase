@@ -2,7 +2,16 @@
 from __future__ import unicode_literals
 
 from django.contrib.gis import admin
-from .models import EducationSite, Postcodes, School, Multipolygons, ImportLog
+
+from .models import EducationSite
+from .models import ImportLog
+from .models import Lines
+from .models import Multilinestrings
+from .models import Multipolygons
+from .models import Points
+from .models import Postcodes
+from .models import School
+
 
 class ImportLogAdmin(admin.ModelAdmin):
     raw_id_fields = ['site', 'school' ]
@@ -28,4 +37,7 @@ admin.site.register(EducationSite, EducationSiteAdmin)
 admin.site.register(Postcodes, PostcodesAdmin)
 admin.site.register(School, SchoolAdmin)
 admin.site.register(Multipolygons, admin.GeoModelAdmin)
+admin.site.register(Lines, admin.GeoModelAdmin)
+admin.site.register(Multilinestrings, admin.GeoModelAdmin)
+admin.site.register(Points, admin.GeoModelAdmin)
 admin.site.register(ImportLog, ImportLogAdmin)

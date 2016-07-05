@@ -28,14 +28,6 @@
     {% include "navigation.html" %}
     <h1>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</h1>
 
-
-    {% for message in messages %}
-    <div class="alert alert-dismissible alert-{{ message.tags }}">
-    {{ message }}
-    </div>
-    {% endfor %}
-
-
     <div class="buttons">
       {% if user.is_authenticated %}
         <div class="user-details">

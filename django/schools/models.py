@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-#from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields import HStoreField
 from django.utils.functional import cached_property
 
-from .utils import tokenize, STOP_WORDS, SCHOOL_TYPES
+from .utils import SCHOOL_TYPES
+from .utils import STOP_WORDS
+from .utils import tokenize
+
 
 class CleanNameMixIn(object):
 
@@ -220,4 +222,3 @@ class Points(models.Model):
     class Meta:
         managed = False
         db_table = 'points'
-

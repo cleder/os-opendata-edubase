@@ -574,12 +574,22 @@ def post_import():
     fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, post_sql))
     fab.local('psql -d {0} -U {1} -h localhost -c "VACUUM ANALYZE;"'.format(DB_NAME, DB_USER))
 
+def get_size(filename):
+    st = os.stat(filename)
+    return st.st_size
+
+def update_osm():
+    get_osm_schooldata()
+    if (get_size(os.path.join(PROJECT_DIR, 'data', 'osm', 'schools.osm')) > 50000000 and
+        get_size(os.path.join(PROJECT_DIR, 'data', 'osm', 'colleges.osm')) > 2000000):
+        import_osm()
+        get_sites_overlapping_osm()
+
 def init_db():
     unzip_codepo()
     prepend_headers()
     unzip_os_local()
     get_osm_schooldata()
-    #create_db()
     postcode_sql_import()
     edubase_import()
     edubase_sql_import()

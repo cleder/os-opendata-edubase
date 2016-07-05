@@ -1,36 +1,44 @@
 #
-from collections import Counter
-import json, random
-from operator import itemgetter
+import json
+import random
 import urllib
+from collections import Counter
+from operator import itemgetter
 from urlparse import urlparse
 
-import Levenshtein
-from django.db import connection
+import osmoapi
+import phonenumbers
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.gis.measure import Distance
-from django.contrib.gis.db.models.functions import Distance as TheDistance
-from django.contrib.gis import geos
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.gis import geos
+from django.contrib.gis.db.models.functions import Distance as TheDistance
+from django.contrib.gis.measure import Distance
 from django.core.urlresolvers import reverse
+from django.db import connection
+from django.http import HttpResponse
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic import TemplateView
 from django.views.generic import View
-
 from djgeojson.views import GeoJSONResponseMixin
-import phonenumbers
-from pygeoif import MultiPolygon, Polygon, Point
+from pygeoif import MultiPolygon
+from pygeoif import Point
+from pygeoif import Polygon
 
-from .models import  EducationSite, Postcodes
-from .models import ImportLog, School, SchoolSite
-from .models import Points, Lines, Multilinestrings, Multipolygons
-from .models import EducationSiteNearSchool, EducationSiteOverlapsOsm
+from .models import EducationSite
+from .models import EducationSiteNearSchool
+from .models import EducationSiteOverlapsOsm
+from .models import ImportLog
+from .models import Lines
+from .models import Multilinestrings
+from .models import Multipolygons
+from .models import Points
+from .models import Postcodes
+from .models import School
+from .models import SchoolSite
 from .utils import tokenize
-
-import osmoapi
 
 open_schools = School.objects.filter(status_name__istartswith = 'open')
 school_sites = EducationSite.objects
@@ -171,6 +179,10 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         return self.queryset.filter(id__lt=gid).last()
 
     def get(self, request, gid):
+        if is_test():
+            msg = ('This site is currently in test mode all additions will'
+                   ' be made to api06.dev.openstreetmap.org - not the live server!')
+            messages.warning(request, msg)
         self.location = get_location_coockie(request)
         route = request.resolver_match.url_name
         try:
@@ -232,11 +244,12 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                     resource_owner_key=access_token['oauth_token'],
                     resource_owner_secret=access_token['oauth_token_secret'],
                     test = test)
-            cs = api.create_changeset('osmoapi', 'Testing oauth api')
+            kwargs = self.tags_for_school(school)
+            msg = 'Added School {0} in {1}, UK via http://schools.mapthe.uk'.format(
+                kwargs.get('name', ''), kwargs.get('addr:city', ''))
+            cs = api.create_changeset('schools.mapthe.uk', msg)
             point = Point(school.location.coords)
             change = osmoapi.OsmChange(cs)
-            city = school.town or school.locality
-            kwargs = self.tags_for_school(school)
             if (site.cleaned_name_no_type and
                 school.cleaned_name_no_type and
                 site.cleaned_name_no_type != school.cleaned_name_no_type):
@@ -248,6 +261,9 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                                  user=request.user, changeset=cs.id,
                                  change = change.to_string())
             logentry.save()
+        else:
+            msg = 'oops something went wrong - please try again'
+            messages.error(request, msg)
         return self.get(request, gid)
 
 
