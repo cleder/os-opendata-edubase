@@ -255,11 +255,11 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                 site.cleaned_name_no_type != school.cleaned_name_no_type):
                 kwargs['alt_name'] = site.distname
             change.create_multipolygon(mp, **kwargs)
-            api.diff_upload(change)
+            result = api.diff_upload(change)
             assert api.close_changeset(cs)
             logentry = ImportLog(school=school, site=site,
                                  user=request.user, changeset=cs.id,
-                                 change = change.to_string())
+                                 change = change.to_string() + result)
             logentry.save()
         else:
             msg = 'oops something went wrong - please try again'
