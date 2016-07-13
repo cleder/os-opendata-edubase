@@ -98,7 +98,7 @@
        {% if comments %}
        <ul class="list-group">
          {% for comment in comments %}
-         <li> {{ comment.user }} commented at {{ comment.created }}:
+         <li class="list-group-item" > {{ comment.user }} commented at {{ comment.created }}:
          {{ comment.comment }}{{ comment.flag }}
          </li>
          {% endfor %}
@@ -120,9 +120,9 @@
         {{ inject_js|safe }}
         </script>
         <div class="alert alert-dismissible  alert-success">
-          <ul>
+          <ul class="list-group">
           {% for logentry in import_logs %}
-          <li>{{ logentry.user.get_username }} created changeset {{ logentry.changeset }} at {{ logentry.created }} </li>
+          <li class="list-group-item">{{ logentry.user.get_username }} created changeset {{ logentry.changeset }} at {{ logentry.created }} </li>
           {% endfor %}
           </ul>
         </div>
