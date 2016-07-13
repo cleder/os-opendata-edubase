@@ -124,6 +124,22 @@ class ImportLog(models.Model):
     changeset =  models.IntegerField()
     change = models.TextField()
 
+class SiteComment(models.Model):
+
+    FLAGS = (
+        ('not a school', 'Not a school'),
+        ('no school data', 'No data found for nearby schools'),
+        ('already in osm', 'Is already mapped in OSM'),
+        ('not accurate', 'The data is not accurate enough'),
+    )
+
+    site =  models.ForeignKey('EducationSite', on_delete=models.PROTECT)
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    created = models.DateTimeField(auto_now_add=True)
+    comment = models.TextField(blank=True)
+    flag = models.CharField(max_length=32, choices=FLAGS, default=None)
+
+
 
 ###############################################################
 # OpenStreetMap

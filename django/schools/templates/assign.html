@@ -28,13 +28,82 @@
   <body>
     <a class="github-fork-ribbon" href="https://github.com/cleder/os-opendata-edubase" title="Fork me on GitHub">Fork me on GitHub</a>
     {% include "navigation.html" %}
+
+<div class="modal fade" id="myModalNorm" tabindex="-1" role="dialog" >
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <button type="button" class="close"
+                   data-dismiss="modal">
+                       <span aria-hidden="true">&times;</span>
+                       <span class="sr-only">Close</span>
+                </button>
+                <h4 class="modal-title" id="myModalLabel">
+                    Flag this Polygon
+                </h4>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+
+                <form role="form" method="post">
+                  <!--div class="form-group">
+                    <label for="exampleInputEmail1">Email address</label>
+                      <input type="email" class="form-control"
+                      id="exampleInputEmail1" placeholder="Enter email"/>
+                  </div>
+                  <div class="form-group">
+                    <label for="exampleInputPassword1">Password</label>
+                      <input type="password" class="form-control"
+                          id="exampleInputPassword1" placeholder="Password"/>
+                  </div>
+                  <div class="checkbox">
+                    <label>
+                        <input type="checkbox"/> Check me out
+                    </label>
+                  </div>
+                  <button type="submit" class="btn btn-default">Submit</button-->
+                  <div class="form-group">
+                  {{ comment_form }}
+                  </div>
+                  {% csrf_token %}
+                  <input class="btn btn-warning" type="submit" name="submit-comment" value="Submit">
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <!--div class="modal-footer">
+                <button type="button" class="btn btn-default"
+                        data-dismiss="modal">
+                            Close
+                </button>
+                <button type="button" class="btn btn-primary">
+                    Save changes
+                </button>
+            </div-->
+        </div>
+    </div>
+</div>
     <div class="buttons">
        <h2>Assign a OS OpenData polygon to a School</h2>
        <h3>{{ site.distname }}</h3>
        <p>
        {{ site.classifica }}
        <i>(shown as a blue polygon)</i>
+       <button class="btn btn-warning" data-toggle="modal" data-target="#myModalNorm">
+          Flag this
+        </button>
        </p>
+       {% if comments %}
+       <ul class="list-group">
+         {% for comment in comments %}
+         <li> {{ comment.user }} commented at {{ comment.created }}:
+         {{ comment.comment }}{{ comment.flag }}
+         </li>
+         {% endfor %}
+       </ul>
+       {% endif %}
     </div>
     <div style="padding: 0 3%;">
     {% leaflet_map "main" callback="main_map_init" %}
@@ -58,7 +127,9 @@
           </ul>
         </div>
         {% else %}
+        {% if not comments %}
         <h2>Data to be added:</h2>
+        {% endif %}
         <ul>
           {% for school in schools_nearby %}
           <li>
@@ -72,10 +143,12 @@
                 <li>{{ item.0 }} = {{ item.1 }} </li>
              {% endfor %}
             </ul>
+            {% if not comments %}
             <form method="post">
               <input class="btn btn-primary" type="submit" name="{{ school.0.id }}" value="{{ button_text }}">
              {% csrf_token %}
             </form>
+            {% endif %}
             </li>
           {% endfor %}
           {% if not schools_nearby %}

@@ -27,6 +27,7 @@ from pygeoif import MultiPolygon
 from pygeoif import Point
 from pygeoif import Polygon
 
+from .forms import SiteCommentForm
 from .models import EducationSite
 from .models import EducationSiteNearSchool
 from .models import EducationSiteOverlapsOsm
@@ -38,12 +39,13 @@ from .models import Points
 from .models import Postcodes
 from .models import School
 from .models import SchoolSite
+from .models import SiteComment
 from .utils import tokenize
 
 open_schools = School.objects.filter(status_name__istartswith = 'open')
 school_sites = EducationSite.objects
 
-button_text = 'Add to OSM'
+BUTTON_TEXT = 'Add to OSM'
 
 def get_location_coockie(request):
     location = None
@@ -203,6 +205,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         else:
             inject = ''
         import_logs = site.importlog_set.all()
+        comments = site.sitecomment_set.all()
         schools_nearby = get_schools_nearby(site.geom)
         osm_polys = list(Multipolygons.objects.filter(wkb_geometry__intersects=site.geom).all())
         osm_mls = list(Multilinestrings.objects.filter(wkb_geometry__intersects=site.geom).all())
@@ -215,14 +218,17 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
             schools_with_tags.append([school,
                                       self.tags_for_school(school),
                                       url_for_school( school)])
+        comment_form = SiteCommentForm()
         context = {'site': site,
                    'schools_nearby': schools_with_tags,
                    'osm_polys': osm_polys + osm_mls + osm_ls + osm_pts,
                    'next_site': next_site,
                    'prev_site': prev_site,
-                   'button_text': button_text,
+                   'button_text': BUTTON_TEXT,
                    'import_logs': import_logs,
                    'route': route,
+                   'comment_form': comment_form,
+                   'comments' : comments,
                    'inject_js': inject,}
         return self.render_to_response(context)
 
@@ -233,7 +239,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         test = is_test()
         idx = None
         for v, k in request.POST.items():
-            if k == button_text:
+            if k == BUTTON_TEXT:
                 idx = int(v)
         if idx is not None:
             school = open_schools.get(pk=idx)
@@ -261,6 +267,11 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                                  user=request.user, changeset=cs.id,
                                  change = change.to_string() + result)
             logentry.save()
+        elif 'submit-comment' in request.POST.keys():
+            form = SiteCommentForm(request.POST)
+            if form.is_valid():
+                comment = SiteComment(user=request.user, site=site, **form.cleaned_data)
+                comment.save()
         else:
             msg = 'oops something went wrong - please try again'
             messages.error(request, msg)

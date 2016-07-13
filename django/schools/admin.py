@@ -11,12 +11,19 @@ from .models import Multipolygons
 from .models import Points
 from .models import Postcodes
 from .models import School
+from .models import SiteComment
+
+
+class SiteCommentAdmin(admin.ModelAdmin):
+    raw_id_fields = ['site', ]
+    list_display = ['user', 'created', 'flag']
 
 
 class ImportLogAdmin(admin.ModelAdmin):
     raw_id_fields = ['site', 'school' ]
     list_display = ['user', 'created', 'changeset']
     search_fields = ['user', ]
+
 
 class EducationSiteAdmin(admin.GeoModelAdmin):
     list_display=['grid_ref', 'distname']
@@ -41,3 +48,4 @@ admin.site.register(Lines, admin.GeoModelAdmin)
 admin.site.register(Multilinestrings, admin.GeoModelAdmin)
 admin.site.register(Points, admin.GeoModelAdmin)
 admin.site.register(ImportLog, ImportLogAdmin)
+admin.site.register(SiteComment, SiteCommentAdmin)
