@@ -511,7 +511,8 @@ def get_sites_near_schools():
     SELECT DISTINCT education_site.id as site_id, school.id as school_id
     INTO education_site_near_school
     FROM education_site, school
-    WHERE ST_DWithin(education_site.geom, school.location, 0.0014);
+    WHERE ST_DWithin(education_site.geom, school.location, 0.0014)
+    AND school.status_name ILIKE 'open%';
 
     ALTER TABLE education_site_near_school
     ADD COLUMN id serial PRIMARY KEY;
@@ -534,12 +535,12 @@ def get_sites_near_schools():
 
 def get_sites_overlapping_osm():
     sql_overlapping = '''
-    DROP TABLE IF EXISTS education_site_overlaps_osm;
+    DROP TABLE IF EXISTS education_site_overlaps_osm CASCADE;
 
     SELECT DISTINCT education_site.id as site_id, multipolygons.ogc_fid
         INTO education_site_overlaps_osm
         FROM education_site, multipolygons
-        WHERE ST_Overlaps(education_site.geom, multipolygons.wkb_geometry);
+        WHERE ST_Intersects(education_site.geom, multipolygons.wkb_geometry);
 
     ALTER TABLE education_site_overlaps_osm
         ADD COLUMN id serial PRIMARY KEY;
@@ -574,6 +575,28 @@ def post_import():
     fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, post_sql))
     fab.local('psql -d {0} -U {1} -h localhost -c "VACUUM ANALYZE;"'.format(DB_NAME, DB_USER))
 
+def create_views():
+    sql = """
+    CREATE OR REPLACE VIEW importable_site
+    AS
+    SELECT DISTINCT education_site.*
+    FROM education_site
+    INNER JOIN education_site_near_school
+    ON education_site.id = education_site_near_school.site_id;
+
+    CREATE OR REPLACE VIEW importable_site_no_osm
+    AS
+    SELECT DISTINCT education_site.*
+    FROM education_site
+    INNER JOIN education_site_near_school
+    ON education_site.id = education_site_near_school.site_id
+    WHERE education_site.id NOT IN (SELECT site_id FROM education_site_overlaps_osm)
+    AND education_site.id NOT IN (SELECT site_id FROM schools_importlog)
+    AND education_site.id NOT IN (SELECT site_id FROM schools_sitecomment);
+
+    """
+    fab.local('psql -d {0} -U {1} -h localhost -c "{2}"'.format(DB_NAME, DB_USER, sql))
+
 def get_size(filename):
     st = os.stat(filename)
     return st.st_size
@@ -584,6 +607,7 @@ def update_osm():
         get_size(os.path.join(PROJECT_DIR, 'data', 'osm', 'colleges.osm')) > 2000000):
         import_osm()
         get_sites_overlapping_osm()
+        create_views()
 
 def init_db():
     unzip_codepo()
@@ -600,4 +624,5 @@ def init_db():
     import_osm()
     get_sites_overlapping_osm()
     get_sites_near_schools()
+    create_views()
     post_import()

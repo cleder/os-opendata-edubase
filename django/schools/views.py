@@ -136,11 +136,8 @@ def start_all_at_random(request):
     return HttpResponseRedirect(reverse('assign-all', args=([site_id, ])))
 
 def start_noosm_at_random(request):
-    includes = EducationSiteNearSchool.objects.values_list('site_id', flat=True)
-    excludes = EducationSiteOverlapsOsm.objects.values_list('site_id', flat=True)
-    include_only = set(includes)-set(excludes)
-    site_id = random.choice(school_sites.filter(id__in=include_only).values_list('id', flat=True))
-    return HttpResponseRedirect(reverse('assign-os-school', args=([site_id, ])))
+    site = random.choice(list(EducationSite.objects.raw('select id from importable_site_no_osm')))
+    return HttpResponseRedirect(reverse('assign-os-school', args=([site.pk, ])))
 
 
 #class based views
@@ -188,7 +185,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         self.location = get_location_coockie(request)
         route = request.resolver_match.url_name
         try:
-            site = self.queryset.get(pk=gid)
+            site = school_sites.get(pk=gid)
         except EducationSite.DoesNotExist:
             nextsite = self.get_next_site(gid)
             if nextsite  is None:
@@ -234,7 +231,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
 
     def post(self, request, gid):
         self.location = get_location_coockie(request)
-        site = self.queryset.get(pk=gid)
+        site = school_sites.get(pk=gid)
         mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
         test = is_test()
         idx = None
@@ -311,10 +308,18 @@ class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
 
     @property
     def queryset(self):
-        includes = EducationSiteNearSchool.objects.values_list('site_id', flat=True)
-        excludes = EducationSiteOverlapsOsm.objects.values_list('site_id', flat=True)
-        include_only = set(includes)-set(excludes)
-        return school_sites.filter(id__in=include_only)
+        return EducationSite.objects.raw('SELECT * FROM importable_site_no_osm')
+
+    def get_next_site(self, gid):
+        return EducationSite.objects.raw(
+            'SELECT * FROM importable_site_no_osm WHERE id > %s LIMIT 1',
+            [gid, ])[0]
+
+    def get_prev_site(self, gid):
+        return EducationSite.objects.raw(
+            'SELECT * FROM importable_site_no_osm WHERE id < %s ORDER BY id DESC LIMIT 1',
+            [gid, ])[0]
+
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 
