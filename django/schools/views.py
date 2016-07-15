@@ -58,9 +58,10 @@ def assign_school_to_site(school,site):
     SchoolSite.objects.create(school=school, site=site)
 
 def get_schools_nearby(geom):
-    return (open_schools.filter(location__distance_lte=(geom, Distance(m=250)))
-                                    .annotate(distance=TheDistance('location', geom))
-                                    .order_by('distance'))
+    return (open_schools.filter(location__dwithin=(geom, 0.003))
+                        .filter(location__distance_lte=(geom, Distance(m=250)))
+                        .annotate(distance=TheDistance('location', geom))
+                        .order_by('distance'))
 
 def is_test():
     if 'schools.backends.osm_test.OpenStreetMapTestOAuth' in settings.AUTHENTICATION_BACKENDS:
@@ -117,7 +118,7 @@ def start_at_location(request):
     location = get_location_coockie(request)
     if location:
         point = geos.Point(location['lng'], location['lat'])
-        start_school = (school_sites.filter(geom__distance_lte=(point, Distance(mi=1)))
+        start_school = (school_sites.filter(geom__dwithin=(point, 0.015))
                                     .annotate(distance=TheDistance('geom', point))
                                     .order_by('distance')).first()
         if not start_school:
@@ -280,9 +281,10 @@ class AssignPolyToSchoolAround(AssignPolyToSchool):
     @property
     def queryset(self):
         point = geos.Point(self.location['lng'], self.location['lat'])
-        return (school_sites.filter(geom__distance_lte=(point, Distance(mi=10)))
-                                .annotate(distance=TheDistance('geom', point))
-                                .order_by('distance'))
+        return (school_sites.filter(geom__dwithin=(point, 0.1))
+                            .filter(geom__distance_lte=(point, Distance(mi=10)))
+                            .annotate(distance=TheDistance('geom', point))
+                            .order_by('distance'))
 
     def get_next_site(self, gid):
         is_next = False
