@@ -58,7 +58,7 @@ def assign_school_to_site(school,site):
     SchoolSite.objects.create(school=school, site=site)
 
 def get_schools_nearby(geom):
-    return (open_schools.filter(location__dwithin=(geom, 0.003))
+    return (open_schools.filter(location__dwithin=(geom, 0.007))
                         .filter(location__distance_lte=(geom, Distance(m=250)))
                         .annotate(distance=TheDistance('location', geom))
                         .order_by('distance'))
@@ -281,7 +281,7 @@ class AssignPolyToSchoolAround(AssignPolyToSchool):
     @property
     def queryset(self):
         point = geos.Point(self.location['lng'], self.location['lat'])
-        return (school_sites.filter(geom__dwithin=(point, 0.1))
+        return (school_sites.filter(geom__dwithin=(point, 0.25))
                             .filter(geom__distance_lte=(point, Distance(mi=10)))
                             .annotate(distance=TheDistance('geom', point))
                             .order_by('distance'))
@@ -344,6 +344,22 @@ class SchoolNameGeoJsonView(GeoJSONResponseMixin, View):
 
     def get(self, request, gid):
         self.gid = gid
+        return self.render_to_response(None)
+
+class SchoolsInArea(GeoJSONResponseMixin, View):
+
+    geometry_field = 'location'
+    properties = ['schoolname']
+
+    def get_queryset(self):
+        schools = (open_schools.filter(location__dwithin=(self.point, 0.25))
+                               .filter(location__distance_lte=(self.point, Distance(mi=10)))
+                               )
+        return schools
+
+
+    def get(self, request):
+        self.point = geos.Point(float(request.GET['lon']), float(request.GET['lat']))
         return self.render_to_response(None)
 
 class OsmSchoolPolyGeoJsonView(GeoJSONResponseMixin, View):

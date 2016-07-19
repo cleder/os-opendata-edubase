@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     url(r'^$', views.index, name='index'),
+     url(r'^schools-in', views.SchoolsInArea.as_view(), name='schools-in'),
     #url(r'^compute/$', views.auto_assign, name='compute'),
     url(r'^logout/$', views.logout, name='logout'),
     #url(r'^stopwords/$', views.stopwords, name='stopwords'),

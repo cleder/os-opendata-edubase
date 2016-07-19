@@ -61,16 +61,23 @@
     <script type="text/javascript">
         var myMap;
         var marker;
+        var school_layer
         function clearLoaction() {
                 Cookies.remove('Location');
                 myMap.removeLayer(marker)
+              };
+
+        function onEachFeature(feature, layer) {
+                if (feature.properties && feature.properties.schoolname) {
+                  layer.bindPopup(feature.properties.schoolname);
+                }
               };
 
         function main_map_init (map, options) {
             // set up the map
 
 
-              function onMapClick(e) {
+            function onMapClick(e) {
                 if (marker != undefined) {
                   map.removeLayer(marker);
                 };
@@ -81,6 +88,15 @@
                     fillOpacity: 0.3
                 });
                 map.addLayer(marker);
+                if (school_layer != undefined) {
+                  map.removeLayer(school_layer);
+                };
+                var dataurl = '{% url "schools-in" %}?lat=' + e.latlng.lat + '&lon=' + e.latlng.lng;
+                $.getJSON(dataurl, function (data) {
+                  // Add GeoJSON layer for schools for os-open
+                  school_layer = L.geoJson(data, {onEachFeature: onEachFeature})
+                  school_layer.addTo(map);
+                });
               };
 
             function onLocationFound(e) {

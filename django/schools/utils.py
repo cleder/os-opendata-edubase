@@ -3,6 +3,7 @@
 import re
 import unicodedata
 
+
 SCHOOL_TYPES = [
     'academy',
     'alternative',
