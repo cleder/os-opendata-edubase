@@ -125,7 +125,15 @@
                     fillColor: '#f03',
                     fillOpacity: 0.3
                 });
-                map.addLayer(marker);
+              map.addLayer(marker);
+              var dataurl = '{% url "schools-in" %}?lat=' + latlng.lat + '&lon=' + latlng.lng;
+              $.getJSON(dataurl, function (data) {
+                  // Add GeoJSON layer for schools for os-open
+                  school_layer = L.geoJson(data, {onEachFeature: onEachFeature})
+                  markerClusters.addLayer(school_layer);
+                  //school_layer.addTo(map);
+                  map.addLayer( markerClusters );
+                });
             };
 
             map.on('click', onMapClick);

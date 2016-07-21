@@ -22,6 +22,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.views.generic import TemplateView
 from django.views.generic import View
+from django.views.generic.list import ListView
 from djgeojson.views import GeoJSONResponseMixin
 from pygeoif import MultiPolygon
 from pygeoif import Point
@@ -46,6 +47,8 @@ open_schools = School.objects.filter(status_name__istartswith = 'open')
 school_sites = EducationSite.objects
 
 BUTTON_TEXT = 'Add to OSM'
+PER_PAGE = 50
+
 
 def get_location_coockie(request):
     location = None
@@ -322,6 +325,30 @@ class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
             'SELECT * FROM importable_site_no_osm WHERE id < %s ORDER BY id DESC LIMIT 1',
             [gid, ])[0]
 
+
+class ImportList(ListView):
+
+    """View to display all imports made with this tool."""
+
+    paginate_by = PER_PAGE
+    template_name = 'import_list.html'
+
+    def get_queryset(self):
+        return ImportLog.objects.all()
+
+
+class SiteCommentList(ListView):
+
+    """View to display all Site Comments made with this tool."""
+
+    paginate_by = PER_PAGE
+    template_name = 'import_list.html'
+
+    def get_queryset(self):
+        return SiteComment.objects.all()
+
+#########################
+# Geojson views
 
 class OsSchoolGeoJsonView(GeoJSONResponseMixin, View):
 

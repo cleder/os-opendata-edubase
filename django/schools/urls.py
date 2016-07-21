@@ -9,6 +9,7 @@ urlpatterns = [
     url(r'^logout/$', views.logout, name='logout'),
     #url(r'^stopwords/$', views.stopwords, name='stopwords'),
     url(r'^assign-around/$', views.start_at_location, name='start-at-location'),
+    url(r'^import-log/$', views.ImportList.as_view(), name='import-log'),
     url(r'^os-school/(?P<gid>[0-9]+)/$', views.OsSchoolGeoJsonView.as_view(), name='os-school'),
     url(r'^assign/$', views.start_noosm_at_random, name='start-assign-os-school'),
     url(r'^assign/(?P<gid>[0-9]+)/$', views.AssignPolyToSchoolNoOsm.as_view(), name='assign-os-school'),

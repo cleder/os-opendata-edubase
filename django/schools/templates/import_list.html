@@ -1,0 +1,104 @@
+<!doctype html>
+
+<html>
+  <head>
+    {% load staticfiles %}
+    <title>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</title>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+      nav.paginator ul.pagination {
+      list-style: none;
+      display: flex;
+      margin-top: 2rem
+      }
+
+      nav.paginator ul.pagination li a {
+      padding: 1rem;
+      border: 1px solid orange;
+      }
+
+      nav.paginator ul.pagination li.active a{
+      border: 2px solid orange;
+      font-weight: bold;
+      color: grey;
+      }
+
+      nav.paginator ul.pagination li.disabled a{
+      color: grey;
+      }
+    </style>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+  </head>
+  <body>
+
+    {% include "navigation.html" %}
+    <h1>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport Log</h1>
+
+
+  <table  class="table table-striped table-hover ">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Date</th>
+        <th>Changeset</th>
+        <th>School</th>
+        <th>OS Site</th>
+      </tr>
+    </thead>
+    {% for logentry in page_obj %}
+    <tr>
+      <td>{{ logentry.user.get_username  }}</td>
+      <td>{{ logentry.created }}</td>
+      <td>{{ logentry.changeset }}</td>
+      <td>{{ logentry.site.name }}</td>
+      <td>{{ logentry.school.name }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+{% if is_paginated %}
+  <nav class="paginator">
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+        <li>
+          <a href="?page={{ page_obj.previous_page_number }}">
+            <span>&larr; Previous</span>
+          </a>
+        </li>
+      {% else %}
+        <li class="disabled">
+          <a href="#">
+            <span>&larr; Previous</span>
+          </a>
+        </li>
+      {% endif %}
+
+      {% for page in paginator.page_range %}
+        <li {% if page == page_obj.number %}class="active"{% endif %}>
+          <a href="?page={{ page }}">{{ page }}</a>
+        </li>
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <li>
+          <a href="?page={{ page_obj.next_page_number }}">
+            <span>Next &rarr;</span>
+          </a>
+        </li>
+      {% else %}
+        <li {% if not page_obj.has_next %}class="disabled"{% endif %}>
+          <a href="#">
+            <span>Next &rarr;</span>
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+
+  </body>
+</html>
