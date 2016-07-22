@@ -13,7 +13,7 @@
   <body>
 
     {% include "partials/navigation.html" %}
-    <h1>Schoolimport Log</h1>
+    <h1>Comment Log</h1>
 
 
   <table  class="table table-striped table-hover ">
@@ -21,23 +21,16 @@
       <tr>
         <th>User</th>
         <th>Date</th>
-        <th>Changeset</th>
-        <th>School</th>
+        <th>Flag</th>
         <th>OS Site</th>
       </tr>
     </thead>
     {% for logentry in page_obj %}
     <tr>
-      <td>{{ logentry.user.get_username  }}</td>
+      <td>{{ logentry.user.get_username }}</td>
       <td>{{ logentry.created }}</td>
-      <td><a href="http://www.openstreetmap.org/changeset/{{ logentry.changeset }}">{{ logentry.changeset }}</a></td>
-      {% if logentry.site.id %}
-      <td><a href="{% url 'import-detail' logentry.site.id %}">{{ logentry.site.name }}</a></td>
-      <td><a href="{% url 'import-detail' logentry.site.id %}">{{ logentry.school.name }}</a></td>
-      {% else %}
-      <td>{{ logentry.site.name }}</a></td>
-      <td>{{ logentry.school.name }}</a></td>
-      {% endif %}
+      <td><a href="{% url 'comment-detail' logentry.site.id %}">{{ logentry.flag }}</a></td>
+      <td><a href="{% url 'comment-detail' logentry.site.id %}">{{ logentry.site.name }}</a></td>
     </tr>
     {% endfor %}
   </table>

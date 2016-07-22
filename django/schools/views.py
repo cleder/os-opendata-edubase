@@ -326,6 +326,13 @@ class AssignPolyToSchoolNoOsm(AssignPolyToSchool):
             [gid, ])[0]
 
 
+class ImportedSites(AssignPolyToSchool):
+
+    @property
+    def queryset(self):
+        return school_sites.filter(importlog__id__gte=0)
+
+
 class ImportList(ListView):
 
     """View to display all imports made with this tool."""
@@ -337,15 +344,23 @@ class ImportList(ListView):
         return ImportLog.objects.all()
 
 
+class FlagedSites(AssignPolyToSchool):
+
+    @property
+    def queryset(self):
+        return school_sites.filter(sitecomment__id__gte=0)
+
+
 class SiteCommentList(ListView):
 
     """View to display all Site Comments made with this tool."""
 
     paginate_by = PER_PAGE
-    template_name = 'import_list.html'
+    template_name = 'comment_list.html'
 
     def get_queryset(self):
         return SiteComment.objects.all()
+
 
 #########################
 # Geojson views

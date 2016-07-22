@@ -124,6 +124,10 @@ class ImportLog(models.Model):
     changeset =  models.IntegerField()
     change = models.TextField()
 
+    class Meta:
+        ordering = ['-created']
+
+
 class SiteComment(models.Model):
 
     FLAGS = (
@@ -139,6 +143,8 @@ class SiteComment(models.Model):
     comment = models.TextField(blank=True)
     flag = models.CharField(max_length=32, choices=FLAGS, default=None)
 
+    class Meta:
+        ordering = ['-created']
 
 
 ###############################################################
