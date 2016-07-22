@@ -78,7 +78,7 @@
         function main_map_init (map, options) {
             // set up the map
 
-            var markerClusters = L.markerClusterGroup();
+            var markerClusters;
 
             function onMapClick(e) {
                 if (marker != undefined) {
@@ -91,13 +91,14 @@
                     fillOpacity: 0.3
                 });
                 map.addLayer(marker);
-                if (school_layer != undefined) {
-                  map.removeLayer(school_layer);
+                if (markerClusters != undefined) {
+                  map.removeLayer(markerClusters);
                 };
                 var dataurl = '{% url "schools-in" %}?lat=' + e.latlng.lat + '&lon=' + e.latlng.lng;
                 $.getJSON(dataurl, function (data) {
                   // Add GeoJSON layer for schools for os-open
                   school_layer = L.geoJson(data, {onEachFeature: onEachFeature})
+                  markerClusters = L.markerClusterGroup();
                   markerClusters.addLayer(school_layer);
                   //school_layer.addTo(map);
                   map.addLayer( markerClusters );
@@ -129,6 +130,7 @@
               $.getJSON(dataurl, function (data) {
                   // Add GeoJSON layer for schools for os-open
                   school_layer = L.geoJson(data, {onEachFeature: onEachFeature})
+                  markerClusters = L.markerClusterGroup();
                   markerClusters.addLayer(school_layer);
                   //school_layer.addTo(map);
                   map.addLayer( markerClusters );
