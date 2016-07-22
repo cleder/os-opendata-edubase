@@ -169,7 +169,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         if school.phone:
             pn = phonenumbers.parse(school.phone, 'GB')
             kwargs['phone'] = phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164)
-        kwargs['source:geometry'] = 'OS Open Map Local'
+        kwargs['source:geometry'] = 'OS_Open_Map_Local_FunctionalSite'
         kwargs['source:addr'] = school.source.lower()
         kwargs['source:name'] = school.source.lower()
         return kwargs
