@@ -1,4 +1,6 @@
 from django.conf.urls import url
+from django.views.generic.base import RedirectView
+
 
 from . import views
 
@@ -24,4 +26,5 @@ urlpatterns = [
     url(r'^osm-schoollines/(?P<gid>[0-9]+)/$', views.OsmSchoolLineGeoJsonView.as_view(), name='osm-schoollines'),
     url(r'^osm-schoolmlines/(?P<gid>[0-9]+)/$', views.OsmSchoolMultiLinesGeoJsonView.as_view(), name='osm-schoolmlines'),
     url(r'^osm-schoolpointss/(?P<gid>[0-9]+)/$', views.OsmSchoolPointGeoJsonView.as_view(), name='osm-schoolpoints'),
+    url(r'^login/$', RedirectView.as_view(url='/login/openstreetmap/'), name='osm-login'),
     ]
