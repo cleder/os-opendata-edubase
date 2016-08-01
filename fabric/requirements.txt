@@ -1,2 +1,2 @@
-Fabric==1.11.1
-
+Fabric==1.12.0
+pip-check==0.2

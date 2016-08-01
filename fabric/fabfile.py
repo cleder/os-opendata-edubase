@@ -609,6 +609,15 @@ def update_osm():
         get_sites_overlapping_osm()
         create_views()
 
+def update_seed_edubase():
+    edubase_import()
+    edubase_sql_import()
+    seed_import()
+    seed_sql_import()
+    combine_edubase_seed()
+    post_import()
+
+
 def init_db():
     unzip_codepo()
     prepend_headers()
