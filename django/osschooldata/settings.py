@@ -184,6 +184,31 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = '/home/django/schools.mapthe.uk/static/'
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': '/home/django/log/error.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+         'errors': {
+            'level': 'ERROR',
+            'handlers': ['file'],
+        }
+    },
+}
+
 try:
     from settings_local import *  # local settings
 except ImportError:
