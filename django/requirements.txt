@@ -24,4 +24,4 @@ requests-oauthlib==0.6.2
 simplegeneric==0.8.1
 traitlets==4.2.2
 
--e git://github.com/cleder/osmoapi@0.1#egg=osmoapi
+-e git://github.com/cleder/osmoapi@0.2#egg=osmoapi
