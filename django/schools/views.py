@@ -268,7 +268,6 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
             if mp:
                 change.create_multipolygon(mp, **kwargs)
             else:
-                kwargs['area'] = 'yes'
                 change.create_way(poly.exterior, **kwargs)
             result = api.diff_upload(change)
             assert api.close_changeset(cs)
