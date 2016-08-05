@@ -74,7 +74,7 @@ def is_test():
 
 def url_for_school(school):
     if school.website:
-        if school.website.startswith('http'):
+        if school.website.lower().startswith('http'):
             return urlparse(school.website).netloc
         else:
             return school.website
@@ -236,7 +236,11 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
     def post(self, request, gid):
         self.location = get_location_coockie(request)
         site = school_sites.get(pk=gid)
-        mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
+        if len(site.geom.coords) > 1:
+            mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
+        else:
+            mp = None
+            poly = Polygon(site.geom.coords[0])
         test = is_test()
         idx = None
         for v, k in request.POST.items():
@@ -261,7 +265,11 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
                 school.cleaned_name_no_type and
                 site.cleaned_name_no_type != school.cleaned_name_no_type):
                 kwargs['alt_name'] = site.distname
-            change.create_multipolygon(mp, **kwargs)
+            if mp:
+                change.create_multipolygon(mp, **kwargs)
+            else:
+                kwargs['area'] = 'yes'
+                change.create_way(poly.exterior, **kwargs)
             result = api.diff_upload(change)
             assert api.close_changeset(cs)
             logentry = ImportLog(school=school, site=site,
