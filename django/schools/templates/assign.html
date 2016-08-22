@@ -122,7 +122,9 @@
           <ul class="list-group">
           {% for logentry in import_logs %}
           <li class="list-group-item">{{ logentry.user.get_username }} created
-          <a href="http://www.openstreetmap.org/changeset/{{ logentry.changeset }}">changeset {{ logentry.changeset }}</a>
+          <a href="http://www.openstreetmap.org/changeset/{{ logentry.changeset }}" target="_blank" >
+            changeset {{ logentry.changeset }}
+          </a>
           at {{ logentry.created }} </li>
           {% endfor %}
           </ul>

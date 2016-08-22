@@ -30,7 +30,11 @@
     <tr>
       <td>{{ logentry.user.get_username  }}</td>
       <td>{{ logentry.created }}</td>
-      <td><a href="http://www.openstreetmap.org/changeset/{{ logentry.changeset }}">{{ logentry.changeset }}</a></td>
+      <td>
+        <a href="http://www.openstreetmap.org/changeset/{{ logentry.changeset }}" target="_blank" >
+          {{ logentry.changeset }}
+        </a>
+      </td>
       {% if logentry.site.id %}
       <td><a href="{% url 'import-detail' logentry.site.id %}">{{ logentry.site.name }}</a></td>
       <td><a href="{% url 'import-detail' logentry.site.id %}">{{ logentry.school.name }}</a></td>

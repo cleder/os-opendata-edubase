@@ -21,7 +21,7 @@ class SiteCommentAdmin(admin.ModelAdmin):
 
 class ImportLogAdmin(admin.ModelAdmin):
     raw_id_fields = ['site', 'school' ]
-    list_display = ['user', 'created', 'changeset']
+    list_display = ['user', 'created', 'school', 'changeset']
     search_fields = ['user', ]
 
 

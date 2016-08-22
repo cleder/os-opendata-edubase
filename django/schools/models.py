@@ -60,6 +60,9 @@ class School(CleanNameMixIn, models.Model):
     def name(self):
         return self.schoolname
 
+    def __unicode__(self):
+        return self.name
+
 class EducationSite(CleanNameMixIn, models.Model):
     gid = models.IntegerField()
     grid_ref = models.CharField(max_length=2)
