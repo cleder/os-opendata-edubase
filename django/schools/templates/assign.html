@@ -33,8 +33,7 @@
         <div class="modal-content">
             <!-- Modal Header -->
             <div class="modal-header">
-                <button type="button" class="close"
-                   data-dismiss="modal">
+                <button type="button" class="close" data-dismiss="modal">
                        <span aria-hidden="true">&times;</span>
                        <span class="sr-only">Close</span>
                 </button>
@@ -42,50 +41,36 @@
                     Flag this Polygon
                 </h4>
             </div>
-
+            <form role="form" method="post">
             <!-- Modal Body -->
-            <div class="modal-body">
-
-                <form role="form" method="post">
-                  <!--div class="form-group">
-                    <label for="exampleInputEmail1">Email address</label>
-                      <input type="email" class="form-control"
-                      id="exampleInputEmail1" placeholder="Enter email"/>
-                  </div>
-                  <div class="form-group">
-                    <label for="exampleInputPassword1">Password</label>
-                      <input type="password" class="form-control"
-                          id="exampleInputPassword1" placeholder="Password"/>
-                  </div>
-                  <div class="checkbox">
-                    <label>
-                        <input type="checkbox"/> Check me out
-                    </label>
-                  </div>
-                  <button type="submit" class="btn btn-default">Submit</button-->
-                  <div class="form-group">
-                  {{ comment_form }}
-                  </div>
-                  {% csrf_token %}
-                  <input class="btn btn-warning" type="submit" name="submit-comment" value="Submit">
-                </form>
-            </div>
-
-            <!-- Modal Footer -->
-            <!--div class="modal-footer">
-                <button type="button" class="btn btn-default"
-                        data-dismiss="modal">
-                            Close
-                </button>
-                <button type="button" class="btn btn-primary">
-                    Save changes
-                </button>
-            </div-->
+              <div class="modal-body">
+                <div class="form-group">
+                {{ comment_form }}
+                </div>
+                {% csrf_token %}
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <input class="btn btn-warning" type="submit" name="submit-comment" value="Submit">
+              </div>
+            </form>
         </div>
     </div>
 </div>
     <div class="buttons">
-       <h2>Assign a OS OpenData polygon to a School</h2>
+      <ul class="pager">
+         {% if prev_site %}
+           <li class="previous">
+             <a href="{% url route prev_site.id %}">&larr; {{ prev_site.distname}}</a>
+           </li>
+         {% endif %}
+         <li><span><b>Assign a OS OpenData polygon to a School</b></span></li>
+         {% if next_site %}
+          <li class="next">
+            <a href="{% url route next_site.id %}">{{ next_site.distname}} &rarr;</a>
+          </li>
+          {% endif %}
+        </ul>
        <h3>{{ site.distname }}</h3>
        <p>
        {{ site.classifica }}
@@ -109,9 +94,10 @@
     </div>
     <div>
       <div class="alert alert-dismissible alert-info">
-      The highlighted blue polygon will be <b>ADDED</b> to OpenStreetMap. If a school
-      outline is already shown on the base map behind, then you should
-      manually add the tags (& edubase reference manually) to that object.
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        The highlighted blue polygon will be <b>ADDED</b> to OpenStreetMap. If a school
+        outline is already shown on the base map behind, then you should
+        manually add the tags (& edubase reference manually) to that object.
       </div>
       <div class="jumbotron">
         {% if import_logs %}
@@ -176,7 +162,7 @@
       </div>
       {% endif %}
     </div>
-    <div class="buttons">
+    <div>
         <ul class="pager">
          {% if prev_site %}
            <li class="previous">
