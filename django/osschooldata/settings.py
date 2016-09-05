@@ -95,7 +95,7 @@ DATABASES = {
 LEAFLET_CONFIG = {
     'TILES': [
         ('OpenStreetMap',
-        'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiY2xlZGVyIiwiYSI6ImNpc3FjcGMyYjAwMmUyenBieWloN2Z4MzMifQ.tXA5uHvadjm1YMZQCvu02A',
         {'attribution': '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'}),
         ('Satelite',
         'http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
