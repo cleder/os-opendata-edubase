@@ -1,6 +1,7 @@
 #
 import json
 import random
+import string
 import urllib
 from collections import Counter
 from operator import itemgetter
@@ -155,7 +156,9 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
 
     def tags_for_school(self, school):
         city = school.town or school.locality
-        kwargs = dict(amenity='school', name=school.name)
+        if city == city.upper():
+            city = string.capwords(city)
+        kwargs = dict(amenity='school', name=school.name.strip())
         if school.website:
             kwargs['website'] =  url_for_school(school)
         kwargs['ref:{0}'.format(school.source.lower())] = str(school.uid)
