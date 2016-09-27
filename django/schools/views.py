@@ -78,7 +78,7 @@ def url_for_school(school):
         if school.website.lower().startswith('http'):
             return urlparse(school.website).netloc
         else:
-            return school.website
+            return school.website.rstrip('/')
 
 
 # simple views
