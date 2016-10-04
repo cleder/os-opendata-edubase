@@ -9,6 +9,9 @@ from urlparse import urlparse
 
 import osmoapi
 import phonenumbers
+
+from django.db.models import Count
+from django.db.models import Min
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout as auth_logout
@@ -83,7 +86,8 @@ def url_for_school(school):
 
 # simple views
 def index(request):
-    return render(request, 'home.html')
+    added = ImportLog.objects.count()
+    return render(request, 'home.html', context={'schools_added': added})
 
 
 def logout(request):
@@ -122,11 +126,11 @@ def start_at_location(request):
     location = get_location_coockie(request)
     if location:
         point = geos.Point(location['lng'], location['lat'])
-        start_school = (school_sites.filter(geom__dwithin=(point, 0.015))
+        start_school = (school_sites.filter(geom__dwithin=(point, 0.075))
                                     .annotate(distance=TheDistance('geom', point))
                                     .order_by('distance')).first()
         if not start_school:
-            msg = 'There are no schools in a one mile radius from the location you chose!'
+            msg = 'There are no schools in a five mile radius from the location you chose!'
             messages.info(request, msg)
             return HttpResponseRedirect('/')
         else:
@@ -146,6 +150,33 @@ def start_noosm_at_random(request):
 
 
 #class based views
+
+class UserContributions(TemplateView):
+
+    template_name = 'contributor.html'
+
+    def get(self, request, username):
+        additions = ImportLog.objects.filter(user__username=username).count()
+        comments = SiteComment.objects.filter(user__username=username).count()
+        context = {'additions': additions, 'comments': comments, 'username': username}
+        return self.render_to_response(context)
+
+
+class Contributions(TemplateView):
+
+    template_name = 'contributions.html'
+
+    def get(self, request):
+        additions = ImportLog.objects.values('user__username'
+                                            ).annotate(added=Count('user')
+                                            ).order_by('added')
+        comments = SiteComment.objects.values('user__username'
+                                             ).annotate(comments=Count('user')
+                                             ).order_by('comments')
+        context = {'additions': additions.all(), 'comments': comments.all()}
+        return self.render_to_response(context)
+
+
 class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
 
     template_name = 'assign.html'
@@ -413,6 +444,25 @@ class SchoolsInArea(GeoJSONResponseMixin, View):
     def get(self, request):
         self.point = geos.Point(float(request.GET['lon']), float(request.GET['lat']))
         return self.render_to_response(None)
+
+
+class SchoolsMappedByUser(GeoJSONResponseMixin, View):
+
+    geometry_field = 'geom'
+    properties = ['name']
+
+    def get_queryset(self):
+        schools = ImportLog.objects.filter(user__username=self.username
+                                           ).select_related('user', 'school'
+                                           ).annotate(geom=Min('school__location'),
+                                                      name=Min('school__schoolname')
+                                           )
+        return schools
+
+    def get(self, request, username):
+        self.username = username
+        return self.render_to_response(None)
+
 
 class OsmSchoolPolyGeoJsonView(GeoJSONResponseMixin, View):
 

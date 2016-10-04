@@ -1,0 +1,73 @@
+<!doctype html>
+{% load leaflet_tags %}
+<html>
+  <head>
+    {% load staticfiles %}
+    <title>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</title>
+    <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/cerulean/bootstrap.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.0/gh-fork-ribbon.min.css" />
+    <link rel="stylesheet" href="{% static 'MarkerCluster.Default.css' %}" />
+    <link rel="stylesheet" href="{% static 'MarkerCluster.css' %}" />
+    <style>
+      h1 { padding: 0 30px; }
+      .buttons { display: block; table-layout: fixed; border-radius: 7px; border: 1px solid #ccc;
+                 margin: 20px; background: #eee; padding: 30px; }
+      .buttons > div .btn { margin: 5px 10px; }
+      .buttons > div:not(:first-child) { margin-top: 10px; border-top: 1px solid #ccc;
+                                         padding-top: 10px; text-align: center; }
+      .user-details { text-align: center; font-size: 16px; font-weight: bold; }
+    </style>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    {% leaflet_js %}
+    {% leaflet_css %}
+    <script src="{% static 'js.cookie-2.1.2.min.js' %}"></script>
+    <script src="{% static 'leaflet.markercluster.js' %}"></script>
+    <script data-cfasync="false" type="text/javascript" src="//filamentapp.s3.amazonaws.com/221fc0afeae8c2efb38e4b241d2059af.js" async="async"></script>
+  </head>
+  <body>
+    <a class="github-fork-ribbon" href="https://github.com/cleder/os-opendata-edubase" title="Fork me on GitHub">Fork me on GitHub</a>
+    {% include "partials/navigation.html" %}
+    <h1>Contributors</h1>
+    <p>
+      <table  class="table table-striped table-hover ">
+        <caption>Schools added</caption>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Additions</th>
+        </tr>
+      </thead>
+      {% for addition in additions %}
+      <tr>
+        <td>
+          <a href="{% url 'contributor' addition.user__username %}">
+            {{ addition.user__username }}
+          </a>
+        </td>
+        <td>{{ addition.added }}</td>
+      </tr>
+      {% endfor%}
+      </table>
+    </p>
+    <p>
+      <table  class="table table-striped table-hover ">
+      <caption>Schools surveyed</caption>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Comments</th>
+        </tr>
+      </thead>
+      {% for comment in comments %}
+      <tr>
+        <td>{{ comment.user__username }}</td>
+        <td>{{ comment.comments }}</td>
+      </tr>
+      {% endfor%}
+      </table>
+    </p>
+
+  </body>
+</html>

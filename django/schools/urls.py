@@ -13,6 +13,8 @@ urlpatterns = [
     url(r'^assign-around/$', views.start_at_location, name='start-at-location'),
     url(r'^import-log/$', views.ImportList.as_view(), name='import-log'),
     url(r'^comment-log/$', views.SiteCommentList.as_view(), name='comment-log'),
+    url(r'^contributions/$', views.Contributions.as_view(), name='contributions'),
+    url(r'^contributor/(?P<username>[a-zA-Z0-9-_]*)/$', views.UserContributions.as_view(), name='contributor'),
     url(r'^imported-sites/(?P<gid>[0-9]+)/$', views.ImportedSites.as_view(), name='import-detail'),
     url(r'^commented-sites/(?P<gid>[0-9]+)/$', views.FlagedSites.as_view(), name='comment-detail'),
     url(r'^os-school/(?P<gid>[0-9]+)/$', views.OsSchoolGeoJsonView.as_view(), name='os-school'),
@@ -26,5 +28,6 @@ urlpatterns = [
     url(r'^osm-schoollines/(?P<gid>[0-9]+)/$', views.OsmSchoolLineGeoJsonView.as_view(), name='osm-schoollines'),
     url(r'^osm-schoolmlines/(?P<gid>[0-9]+)/$', views.OsmSchoolMultiLinesGeoJsonView.as_view(), name='osm-schoolmlines'),
     url(r'^osm-schoolpointss/(?P<gid>[0-9]+)/$', views.OsmSchoolPointGeoJsonView.as_view(), name='osm-schoolpoints'),
+    url(r'^school-added-by/(?P<username>[a-zA-Z0-9-_]*)/$', views.SchoolsMappedByUser.as_view(), name='schools-by-user'),
     url(r'^login/$', RedirectView.as_view(url='/login/openstreetmap/'), name='osm-login'),
     ]

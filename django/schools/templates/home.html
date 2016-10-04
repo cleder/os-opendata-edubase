@@ -30,29 +30,26 @@
     <a class="github-fork-ribbon" href="https://github.com/cleder/os-opendata-edubase" title="Fork me on GitHub">Fork me on GitHub</a>
     {% include "partials/navigation.html" %}
     <h1>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</h1>
-
     <div class="buttons">
+      <ul class="pager">
+        <li><span><b>{{ schools_added }} Schools added.</b></span></li>
+      </ul>
       {% if user.is_authenticated %}
         <div class="user-details">
           You are logged in as <code>{{ user.username }}</code>!
         </div>
-      {% endif %}
-
-      {% if not user.is_authenticated %}
-      <div>
-        <a class="btn btn-primary" id="osm-button" name="osm" href="{% url 'social:begin' backend='openstreetmap' %}">
-          Login with OpenStreetMap
-        </a>
-      </div>
-      {% endif %}
-
-      {% if user.is_authenticated %}
-      <div>
+        <div>
         <a class="btn btn-primary" href="{% url 'logout' %}" id="logout">
           <i class="fa fa-sign-out"></i>
           Logout
         </a>
-      </div>
+        </div>
+      {% else %}
+        <div>
+          <a class="btn btn-primary" id="osm-button" name="osm" href="{% url 'social:begin' backend='openstreetmap' %}">
+            Login with OpenStreetMap
+          </a>
+        </div>
       {% endif %}
     </div>
     <div style="padding: 0 3%;">

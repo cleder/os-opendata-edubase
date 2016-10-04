@@ -1,0 +1,67 @@
+<!doctype html>
+{% load leaflet_tags %}
+<html>
+  <head>
+    {% load staticfiles %}
+    <title>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</title>
+    <link href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.6/cerulean/bootstrap.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.0/gh-fork-ribbon.min.css" />
+    <link rel="stylesheet" href="{% static 'MarkerCluster.Default.css' %}" />
+    <link rel="stylesheet" href="{% static 'MarkerCluster.css' %}" />
+    <style>
+      h1 { padding: 0 30px; }
+      .buttons { display: block; table-layout: fixed; border-radius: 7px; border: 1px solid #ccc;
+                 margin: 20px; background: #eee; padding: 30px; }
+      .buttons > div .btn { margin: 5px 10px; }
+      .buttons > div:not(:first-child) { margin-top: 10px; border-top: 1px solid #ccc;
+                                         padding-top: 10px; text-align: center; }
+      .user-details { text-align: center; font-size: 16px; font-weight: bold; }
+    </style>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    {% leaflet_js %}
+    {% leaflet_css %}
+    <script src="{% static 'js.cookie-2.1.2.min.js' %}"></script>
+    <script src="{% static 'leaflet.markercluster.js' %}"></script>
+    <script data-cfasync="false" type="text/javascript" src="//filamentapp.s3.amazonaws.com/221fc0afeae8c2efb38e4b241d2059af.js" async="async"></script>
+  </head>
+  <body>
+    <a class="github-fork-ribbon" href="https://github.com/cleder/os-opendata-edubase" title="Fork me on GitHub">Fork me on GitHub</a>
+    {% include "partials/navigation.html" %}
+    <h1>Contributions by {{ username }}</h1>
+    <ul>
+      <li>{{ additions }} additions</li>
+      <li>{{ comments }} comments</li>
+    </ul>
+    <div style="padding: 0 3%;">
+      <h2>Additions by {{ username }}</h2>
+      {% leaflet_map "main" callback="main_map_init" %}
+    </div>
+    <script type="text/javascript">
+        function onEachFeature(feature, layer) {
+                if (feature.properties && feature.properties.name) {
+                  layer.bindPopup(feature.properties.name);
+                }
+              };
+
+        function main_map_init (map, options) {
+            // set up the map
+            map.layerscontrol.options.collapsed = false;
+            map.setView(new L.LatLng(53.0, 0.79),8);
+            var dataurl = '{% url "schools-by-user" username %}';
+            $.getJSON(dataurl, function (data) {
+                  // Add GeoJSON layer for schools for os-open
+                  school_layer = L.geoJson(data, {onEachFeature: onEachFeature})
+                  markerClusters = L.markerClusterGroup();
+                  markerClusters.addLayer(school_layer);
+                  //school_layer.addTo(map);
+                  map.addLayer( markerClusters );
+                  map.setZoom(16);
+                  map.fitBounds(school_layer.getBounds());
+                });
+            };
+
+    </script>
+  </body>
+</html>
