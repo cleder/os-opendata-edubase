@@ -169,10 +169,10 @@ class Contributions(TemplateView):
     def get(self, request):
         additions = ImportLog.objects.values('user__username'
                                             ).annotate(added=Count('user')
-                                            ).order_by('added')
+                                            ).order_by('-added')
         comments = SiteComment.objects.values('user__username'
                                              ).annotate(comments=Count('user')
-                                             ).order_by('comments')
+                                             ).order_by('-comments')
         context = {'additions': additions.all(), 'comments': comments.all()}
         return self.render_to_response(context)
 

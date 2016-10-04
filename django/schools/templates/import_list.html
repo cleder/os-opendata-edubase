@@ -28,7 +28,11 @@
     </thead>
     {% for logentry in page_obj %}
     <tr>
-      <td>{{ logentry.user.get_username  }}</td>
+      <td>
+        <a href="{% url 'contributor' logentry.user.get_username  %}">
+          {{ logentry.user.get_username  }}
+        </a>
+      </td>
       <td>{{ logentry.created }}</td>
       <td>
         <a href="http://www.openstreetmap.org/changeset/{{ logentry.changeset }}" target="_blank" >

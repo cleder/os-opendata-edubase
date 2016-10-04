@@ -32,7 +32,10 @@
     <h1>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</h1>
     <div class="buttons">
       <ul class="pager">
-        <li><span><b>{{ schools_added }} Schools added.</b></span></li>
+        <li><span>
+              <a href="{% url 'contributions' %}"><b>{{ schools_added }} Schools added.</b></a>
+            </span>
+          </li>
       </ul>
       {% if user.is_authenticated %}
         <div class="user-details">
