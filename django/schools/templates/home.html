@@ -14,11 +14,11 @@
     <style>
       h1 { padding: 0 30px; }
       .buttons { display: block; table-layout: fixed; border-radius: 7px; border: 1px solid #ccc;
-                 margin: 20px; background: #eee; padding: 30px; }
+                 margin: 20px; background: #eee; padding: 30px; text-align: center;}
       .buttons > div .btn { margin: 5px 10px; }
       .buttons > div:not(:first-child) { margin-top: 10px; border-top: 1px solid #ccc;
                                          padding-top: 10px; text-align: center; }
-      .user-details { text-align: center; font-size: 16px; font-weight: bold; }
+      .user-details { font-size: 16px; font-weight: bold; }
     </style>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
@@ -33,12 +33,13 @@
     {% include "partials/navigation.html" %}
     <h1>OpenStreetMap OS-Opendata/EduBase/Seed Schoolimport</h1>
     <div class="buttons">
+      <div>
       <ul class="pager">
-        <li><span>
-              <a href="{% url 'contributions' %}"><b>{{ schools_added }} Schools added.</b></a>
-            </span>
-          </li>
+        <li class="active">
+          <a href="{% url 'contributions' %}"><span class="badge">{{ schools_added }}</span> <b>Schools added</b></a>
+        </li>
       </ul>
+      </div>
       {% if user.is_authenticated %}
         <div class="user-details">
           You are logged in as <code>{{ user.username }}</code>!

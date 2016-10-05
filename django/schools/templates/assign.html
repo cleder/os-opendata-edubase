@@ -83,7 +83,7 @@
        <ul class="list-group">
          {% for comment in comments %}
          <li class="list-group-item" > {{ comment.user }} commented at {{ comment.created }}:
-         {{ comment.comment }}{{ comment.flag }}
+         {{ comment.flag }}; {{ comment.comment }}
          </li>
          {% endfor %}
        </ul>
