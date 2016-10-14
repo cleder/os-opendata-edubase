@@ -30,4 +30,5 @@ urlpatterns = [
     url(r'^osm-schoolpointss/(?P<gid>[0-9]+)/$', views.OsmSchoolPointGeoJsonView.as_view(), name='osm-schoolpoints'),
     url(r'^school-added-by/(?P<username>[a-zA-Z0-9-_]*)/$', views.SchoolsMappedByUser.as_view(), name='schools-by-user'),
     url(r'^login/$', RedirectView.as_view(url='/login/openstreetmap/'), name='osm-login'),
+    url(r'^privacy-policy/$', views.privacy_policy, name='privacy-policy'),
     ]

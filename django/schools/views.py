@@ -95,6 +95,9 @@ def logout(request):
     auth_logout(request)
     return HttpResponseRedirect('/')
 
+def privacy_policy(request):
+    """Privacy policy static page."""
+    return render(request, 'privacy-policy.html', context={})
 
 def stopwords(request):
     count = Counter()
