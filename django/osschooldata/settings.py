@@ -93,7 +93,7 @@ DATABASES = {
 ###########################################################################
 # leaflet
 LEAFLET_CONFIG = {
-    'SPATIAL_EXTENT': (-6, 50, 2, 61),
+    'SPATIAL_EXTENT': (-8, 48, 4, 63),
     'TILES': [
         ('OpenStreetMap',
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
