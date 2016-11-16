@@ -189,8 +189,8 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         return school_sites
 
     def tags_for_school(self, school):
-        city = school.town or school.locality
-        if city == city.upper():
+        city = school.town or school.locality or ''
+        if city and city == city.upper():
             city = string.capwords(city)
         kwargs = dict(amenity='school', name=school.name.strip())
         if school.website:
