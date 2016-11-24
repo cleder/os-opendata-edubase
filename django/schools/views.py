@@ -31,6 +31,7 @@ from djgeojson.views import GeoJSONResponseMixin
 from pygeoif import MultiPolygon
 from pygeoif import Point
 from pygeoif import Polygon
+from streetaddress import StreetAddressParser
 
 from .forms import SiteCommentForm
 from .models import EducationSite
@@ -200,7 +201,13 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
         if school.postcode:
             kwargs['addr:postcode'] = school.postcode
         if school.street:
-            kwargs['addr:street'] = school.street
+            addr_parser = StreetAddressParser()
+            address = addr_parser.parse(school.street)
+            if address['street_full']:
+                kwargs['addr:street'] = address['street_full']
+            if address['house']:
+                kwargs['addr:housenumber'] = address['house']
+
         if city:
             kwargs['addr:city'] = city
         if school.phone:
