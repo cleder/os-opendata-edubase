@@ -1,8 +1,8 @@
 street-address==0.3.0
 decorator==4.0.10
-Django==1.9.8
-django-geojson==2.9.0
-django-leaflet==0.18.1
+Django==1.9.11
+django-geojson==2.9.1
+django-leaflet==0.19.0
 ecdsa==0.13
 gunicorn==19.6.0
 ipdb==0.10.1
@@ -11,7 +11,7 @@ ipython-genutils==0.1.0
 paramiko==2.0.2
 path.py==8.2.1
 pexpect==4.2.0
-phonenumberslite==7.5.1
+phonenumberslite==7.7.4
 pickleshare==0.7.3
 pip-check==0.2
 pip-check==0.2
@@ -21,8 +21,8 @@ pycrypto==2.6.1
 pygeoif==0.6
 python-Levenshtein==0.12.0
 python-social-auth==0.2.19
-requests-oauthlib==0.6.2
+requests-oauthlib==0.7.0
 simplegeneric==0.8.1
-traitlets==4.2.2
+traitlets==4.3.1
 
 -e git://github.com/cleder/osmoapi@0.2#egg=osmoapi
