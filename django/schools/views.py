@@ -33,6 +33,8 @@ from pygeoif import Point
 from pygeoif import Polygon
 from streetaddress import StreetAddressParser
 
+from fhrs.models import Fhrs
+
 from .forms import SiteCommentForm
 from .models import EducationSite
 from .models import EducationSiteNearSchool
@@ -280,6 +282,7 @@ class AssignPolyToSchool(LoginRequiredMixin, TemplateView):
     def post(self, request, gid):
         self.location = get_location_coockie(request)
         site = school_sites.get(pk=gid)
+        mp = MultiPolygon(site.geom.coords)
         if len(site.geom.coords) > 1:
             mp = MultiPolygon([Polygon(c) for c in site.geom.coords])
         else:
@@ -442,13 +445,15 @@ class SchoolNameGeoJsonView(GeoJSONResponseMixin, View):
 class SchoolsInArea(GeoJSONResponseMixin, View):
 
     geometry_field = 'location'
-    properties = ['schoolname']
+    #properties = ['schoolname']
+    properties = ['business_name']
 
     def get_queryset(self):
-        schools = (open_schools.filter(location__dwithin=(self.point, 0.25))
-                               .filter(location__distance_lte=(self.point, Distance(mi=10)))
-                               )
-        return schools
+        #schools = (open_schools.filter(location__dwithin=(self.point, 0.25))
+        #                       .filter(location__distance_lte=(self.point, Distance(mi=10)))
+        #                       )
+        #return schools
+        return Fhrs.objects.all()
 
 
     def get(self, request):

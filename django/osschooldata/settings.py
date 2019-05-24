@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'social.apps.django_app.default',
     'leaflet',
     'schools',
+    'fhrs',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -96,11 +97,19 @@ LEAFLET_CONFIG = {
     'SPATIAL_EXTENT': (-8, 48, 4, 63),
     'TILES': [
         ('OpenStreetMap',
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {'attribution': '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'}),
+         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+         {'attribution': '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'},
+        ),
         ('Satelite',
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {'attribution': 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'})
+         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+         {'attribution': 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'},
+        ),
+        ('OS Outdoor',
+         'https://api2.ordnancesurvey.co.uk/mapping_api/v1/service/zxy/EPSG%3A3857/Outdoor 3857/{z}/{x}/{y}.png?key=638AEE3C73C2257CE0530C6CA40A7F4A',
+         {'attribution': 'Ordnance Survey Limited'},
+        ),
+
+
         ]
 }
 

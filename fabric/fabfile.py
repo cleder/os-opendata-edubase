@@ -258,7 +258,7 @@ def prepend_headers():
 
 def create_db():
     """
-    This should already have been doe by the install script.
+    This should already have been done by the install script.
     """
     with fab.settings(warn_only=True):
         fab.local('sudo -u postgres createuser -P {0}'.format(DB_USER))
@@ -269,18 +269,6 @@ def create_db():
         fab.local(
             'sudo -u postgres psql -d {0} -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;"'.format(DB_NAME))
         fab.local('sudo -u postgres psql -d {0} -c "CREATE EXTENSION hstore;"'.format(DB_NAME))
-
-
-def ogr2ogr_import_codepoint():
-    # XXX this fails for some reason
-    first = '''ogr2ogr -nlt PROMOTE_TO_MULTI -progress -nln codepoint -skipfailures -lco PRECISION=no -f PostgreSQL PG:"dbname='osopen_data' host='localhost' port='5432'  user='osopen'" {0}'''
-    other = '''ogr2ogr -nlt PROMOTE_TO_MULTI -progress -update -append -nln codepoint -skipfailures -lco PRECISION=no -f PostgreSQL PG:"dbname='osopen_data' host='localhost'  port='5432' user='osopen'" {0}'''
-    path = os.path.join(PROJECT_DIR, 'data', 'Data', 'processed_csv')
-    template = first
-    for f in glob.glob(os.path.join(path, '*.vrt')):
-        with fab.lcd(path):
-            fab.local(template.format(f))
-        template = other
 
 
 def postcode_sql_import():
@@ -312,7 +300,7 @@ def postcode_sql_import():
         'psql -d {0} -U {1} -h localhost -c "CREATE INDEX postcodes_geog_idx ON postcodes USING GIST(location);"'.format(DB_NAME, DB_USER))
     fab.local(
         'psql -d {0} -U {1} -h localhost -c "ALTER TABLE postcodes ADD PRIMARY KEY (Postcode);"'.format(DB_NAME, DB_USER))
-    #fab.local('psql -d osopen_data -U osopen -c "DROP TABLE postcodes_raw;"')
+    fab.local('psql -d osopen_data -U osopen -c "DROP TABLE postcodes_raw;"')
 
 
 def edubase_import():
