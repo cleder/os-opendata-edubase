@@ -1,14 +1,14 @@
 street-address==0.3.0
 decorator==4.0.10
-Django==1.11.28
+Django==2.2.24
 django-geojson==2.9.1
 django-leaflet==0.19.0
-ecdsa==0.13.3
-gunicorn==19.6.0
+ecdsa==0.14
+gunicorn==19.10.0
 ipdb==0.10.1
 ipython==5.0.0
 ipython-genutils==0.1.0
-paramiko==2.0.2
+paramiko==2.0.9
 path.py==8.2.1
 pexpect==4.2.0
 phonenumberslite==7.7.4
@@ -19,10 +19,11 @@ psycopg2==2.6.2
 ptyprocess==0.5.1
 pycrypto==2.6.1
 pygeoif==0.6
-python-Levenshtein==0.12.0
+python-Levenshtein==0.12.1
 python-social-auth==0.2.19
 requests-oauthlib==0.7.0
 simplegeneric==0.8.1
 traitlets==4.3.1
 
 -e git://github.com/cleder/osmoapi@0.2#egg=osmoapi
+pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
