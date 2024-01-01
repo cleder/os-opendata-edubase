@@ -26,3 +26,4 @@ simplegeneric==0.8.1
 traitlets==4.3.1
 
 -e git://github.com/cleder/osmoapi@0.2#egg=osmoapi
+prompt-toolkit>=3.0.13 # not directly required, pinned by Snyk to avoid a vulnerability
